@@ -73,6 +73,8 @@
   .kpi{display:flex; gap:10px; flex-wrap:wrap}
   .kpi .box{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); padding:10px 12px; border-radius:12px}
   .link{color:var(--acc); text-decoration:underline; cursor:pointer}
+  .cols{display:grid; gap:10px}
+  @media(min-width:640px){.cols{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -111,7 +113,7 @@
     <div class="members" id="members"></div>
     <div class="toolbar" style="margin-top:10px">
       <button class="ghost" id="addMemberBtn">＋ メンバー追加</button>
-      <button class="ghost" id="editTasksBtn">チェック項目を編集</button>
+      <button class="ghost" id="editTasksBtn">共通チェック項目を編集</button>
     </div>
   </section>
 
@@ -174,15 +176,40 @@
   </form>
 </dialog>
 
-<!-- ダイアログ: タスク編集（共通テンプレ） -->
+<!-- ダイアログ: 共通タスク編集 -->
 <dialog id="tasksDialog">
   <form method="dialog" class="sheet">
-    <h3>チェック項目（全メンバー共通）</h3>
+    <h3>共通チェック項目（全メンバー初期値）</h3>
     <div class="section-title">1行につき1項目。空行は無視。</div>
     <textarea id="tasksText" rows="8" style="width:100%"></textarea>
     <div class="actions">
       <button class="ghost" value="cancel">キャンセル</button>
       <button value="ok">反映</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ダイアログ: メンバー個別タスク -->
+<dialog id="memberTasksDialog">
+  <form method="dialog" class="sheet">
+    <h3 id="mtTitle">個別タスク</h3>
+    <div class="cols">
+      <div>
+        <div class="section-title">共通項目（表示するものにチェック）</div>
+        <div id="commonList"></div>
+        <div class="toolbar" style="margin-top:8px">
+          <button class="ghost" id="mtAllOn" type="button">すべて表示</button>
+          <button class="ghost" id="mtAllOff" type="button">すべて非表示</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">このメンバーだけの項目（1行1項目）</div>
+        <textarea id="customText" rows="8" style="width:100%"></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="ghost" value="cancel">キャンセル</button>
+      <button value="ok">保存</button>
     </div>
   </form>
 </dialog>
@@ -227,14 +254,12 @@
   // --- State ---
   function loadState(){
     try{
-      // URLにstate=がある場合は読み込んで保存
       const u = new URL(location.href);
       const encoded = u.searchParams.get('state');
       if(encoded){
         const json = atob(decodeURIComponent(encoded));
         const obj = JSON.parse(json);
         localStorage.setItem('tripshare_state', JSON.stringify(obj));
-        // クエリを掃除
         u.searchParams.delete('state'); history.replaceState(null, '', u.toString());
       }
     }catch(e){ console.warn('state import failed', e); }
@@ -255,37 +280,54 @@
     purposeView.textContent = state.trip.purpose || '—';
     timeView.textContent = state.trip.time || '—';
 
-    // Members
     membersEl.innerHTML = '';
     state.members.forEach((m, idx) => membersEl.appendChild(renderMember(m, idx)) );
     memberCount.textContent = state.members.length;
 
-    // Overall progress
-    const all = state.members.flatMap(m => m.tasks);
+    // Overall progress（各メンバーの表示中タスクのみ集計）
+    const all = state.members.flatMap(m => visibleTasks(m));
     const pct = all.length ? Math.round(all.filter(t=>t.done).length / all.length * 100) : 0;
     overallPct.textContent = pct + '%';
 
     renderBanner();
   }
 
+  function visibleTasks(m){
+    return (m.tasks || []).filter(t => t.enabled !== false); // enabled true or undefined
+  }
+
+  function ensureMemberTasksShape(m){
+    // 共通タスクをベースに、既存のdone/enabledを保持。カスタムはそのまま残す。
+    const map = new Map((m.tasks||[]).map(t=>[t.label, t]));
+    const merged = state.tasks.map(label => {
+      const old = map.get(label);
+      return old ? {label, done: !!old.done, enabled: (old.enabled!==false)} : {label, done:false, enabled:true};
+    });
+    // 既存のカスタム（共通に存在しない）を付加
+    (m.tasks||[]).forEach(t=>{ if(!state.tasks.includes(t.label)) merged.push({label:t.label, done:!!t.done, enabled:(t.enabled!==false)}); });
+    m.tasks = merged;
+  }
+
   function renderMember(m, idx){
+    ensureMemberTasksShape(m);
     const card = document.createElement('div');
     card.className = 'member-card card';
     const initials = (m.name || '—').slice(0,2);
+    const pct = memberPct(m);
     card.innerHTML = `
       <div class="member-head">
         <div class="avatar" style="background:${m.color}">${initials}</div>
         <input class="name-input" value="${m.name}" placeholder="メンバー名" />
         <div class="spacer"></div>
-        <button class="ghost small" data-act="edit" title="編集">編集</button>
-        <button class="ghost small" data-act="del" title="削除">削除</button>
+        <button class="ghost small" data-act="mt">個別タスク</button>
+        <button class="ghost small" data-act="edit">編集</button>
+        <button class="ghost small" data-act="del">削除</button>
       </div>
-      <div class="progress"><i style="width:${memberPct(m)}%"></i></div>
+      <div class="progress"><i style="width:${pct}%"></i></div>
       <div class="tasks">
-        ${state.tasks.map((t,i)=>{
-          const own = m.tasks[i] || {label:t, done:false};
-          const checked = own.done ? 'checked' : '';
-          return `<label class="task"><input type="checkbox" data-task="${i}" ${checked}> ${t}</label>`;
+        ${visibleTasks(m).map((t,i)=>{
+          const checked = t.done ? 'checked' : '';
+          return `<label class="task"><input type="checkbox" data-task="${i}" ${checked}> ${t.label}</label>`;
         }).join('')}
       </div>
       <div class="toolbar">
@@ -296,18 +338,23 @@
     card.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       cb.addEventListener('change', e =>{
         const i = Number(e.target.getAttribute('data-task'));
-        m.tasks[i] = {label: state.tasks[i], done: e.target.checked};
+        const vt = visibleTasks(m);
+        const realLabel = vt[i].label;
+        const realIndex = m.tasks.findIndex(x=>x.label===realLabel);
+        m.tasks[realIndex].done = e.target.checked;
         save(); renderAll();
       })
     });
     card.querySelector('.name-input').addEventListener('change', e=>{ m.name = e.target.value.trim(); save(); renderAll(); });
     card.querySelector('[data-act="edit"]').addEventListener('click', ()=> openMemberDialog(m));
     card.querySelector('[data-act="del"]').addEventListener('click', ()=>{ if(confirm('このメンバーを削除しますか？')){ state.members.splice(idx,1); save(); renderAll(); }});
-    card.querySelector('[data-act="reset"]').addEventListener('click', ()=>{ m.tasks = state.tasks.map(t=>({label:t, done:false})); save(); renderAll();});
+    card.querySelector('[data-act="reset"]').addEventListener('click', ()=>{ visibleTasks(m).forEach(t=>t.done=false); save(); renderAll();});
+    card.querySelector('[data-act="mt"]').addEventListener('click', ()=> openMemberTasksDialog(m));
     return card;
   }
   function memberPct(m){
-    const done = m.tasks.filter(t=>t.done).length; const total = m.tasks.length || state.tasks.length || 1; return Math.round(done/total*100);
+    const vt = visibleTasks(m);
+    const done = vt.filter(t=>t.done).length; const total = vt.length || 1; return Math.round(done/total*100);
   }
 
   function renderBanner(){
@@ -375,7 +422,7 @@
         if(isEdit){ existing.name = name; existing.color = color; }
         else{
           if(state.members.length >= MAX_MEMBERS){ toastMsg('メンバーは最大4人まで'); return; }
-          state.members.push({name, color, tasks: state.tasks.map(t=>({label:t, done:false}))});
+          state.members.push({name, color, tasks: state.tasks.map(t=>({label:t, done:false, enabled:true}))});
         }
         save(); renderAll();
       }
@@ -389,11 +436,57 @@
       if($('#tasksDialog').returnValue==='ok'){
         const lines = $('#tasksText').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
         state.tasks = lines.length? lines : state.tasks;
-        // 各メンバーのタスク配列を再構築（既存の完了状態は可能な限り保持）
-        state.members.forEach(m=>{
-          const map = new Map(m.tasks.map(t=>[t.label, t.done]));
-          m.tasks = state.tasks.map(label=>({label, done: map.get(label) || false}));
+        // 各メンバーのタスク配列を再構築（既存の完了/可視状態を保持、カスタムは維持）
+        state.members.forEach(m=> ensureMemberTasksShape(m));
+        save(); renderAll();
+      }
+    }, {once:true});
+  }
+
+  // --- Member specific tasks ---
+  let mtTarget = null;
+  function openMemberTasksDialog(member){
+    mtTarget = member;
+    ensureMemberTasksShape(mtTarget);
+    $('#mtTitle').textContent = `${member.name || 'メンバー'} の個別タスク`;
+
+    // 共通一覧（チェックで表示/非表示）
+    const commonList = $('#commonList');
+    commonList.innerHTML = state.tasks.map(label=>{
+      const t = (member.tasks||[]).find(x=>x.label===label);
+      const enabled = t ? (t.enabled!==false) : true;
+      return `<label class="task"><input type="checkbox" data-role="cmn" data-label="${escapeHtml(label)}" ${enabled?'checked':''}> ${label}</label>`;
+    }).join('');
+
+    // カスタムは共通にないもの
+    const customs = (member.tasks||[]).filter(t=> !state.tasks.includes(t.label)).map(t=>t.label);
+    $('#customText').value = customs.join('\n');
+
+    $('#memberTasksDialog').showModal();
+
+    // バッチ操作
+    $('#mtAllOn').onclick = ()=> { $$('#commonList input[type="checkbox"]').forEach(cb=> cb.checked=true); };
+    $('#mtAllOff').onclick = ()=> { $$('#commonList input[type="checkbox"]').forEach(cb=> cb.checked=false); };
+
+    $('#memberTasksDialog').addEventListener('close', ()=>{
+      if($('#memberTasksDialog').returnValue==='ok'){
+        // 共通の可視/非表示を反映
+        $$('#commonList input[type="checkbox"]').forEach(cb=>{
+          const label = cb.getAttribute('data-label');
+          const idx = member.tasks.findIndex(x=>x.label===label);
+          if(idx>=0){ member.tasks[idx].enabled = cb.checked; }
+          else { member.tasks.push({label, done:false, enabled:cb.checked}); }
         });
+        // カスタムを反映（既存のdoneは保持）
+        const newCustoms = $('#customText').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+        const isCommon = new Set(state.tasks);
+        // 既存のカスタムのdoneを写経
+        const curMap = new Map(member.tasks.filter(t=>!isCommon.has(t.label)).map(t=>[t.label, t.done]));
+        // まず共通にないタスクを削除
+        member.tasks = member.tasks.filter(t=> isCommon.has(t.label) );
+        // 新しいカスタムを追加
+        newCustoms.forEach(label=>{ member.tasks.push({label, done: curMap.get(label)||false, enabled:true}); });
+
         save(); renderAll();
       }
     }, {once:true});
@@ -404,13 +497,12 @@
     if(!state.change) return;
     const myId = deviceId();
     const arrA = state.change.approvals; const arrR = state.change.rejections;
-    // 同一端末の重複票を削除
     state.change.approvals = arrA.filter(id=>id!==myId);
     state.change.rejections = arrR.filter(id=>id!==myId);
     (approve ? state.change.approvals : state.change.rejections).push(myId);
     save();
     renderAll();
-    // 過半数で確定（登録メンバーの半数超）
+    // 過半数で確定
     const votersNeeded = Math.floor((state.members.length||1)/2)+1;
     if(state.change.approvals.length >= votersNeeded){
       const old = state.trip.time; state.trip.time = state.change.proposedTime; state.change = null; save(); renderAll();
@@ -482,7 +574,6 @@
         const mURL = URL.createObjectURL(mBlob);
         const link = document.createElement('link'); link.rel='manifest'; link.href = mURL; document.head.appendChild(link);
 
-        // Service Worker（オフラインキャッシュ＆通知の基盤）
         if('serviceWorker' in navigator){
           const swCode = `self.addEventListener('install', e=>{ e.waitUntil(caches.open('tripshare-v1').then(c=>c.addAll(['./']))); self.skipWaiting(); });
             self.addEventListener('activate', e=> self.clients.claim());
@@ -498,8 +589,8 @@
   // 初期データ（デモ用に1回だけメンバーを入れる）
   if(!state.__seeded){
     state.members = [
-      {name:'ママ', color:'#f472b6', tasks: state.tasks.map(t=>({label:t, done:false}))},
-      {name:'パパ', color:'#60a5fa', tasks: state.tasks.map(t=>({label:t, done:false}))}
+      {name:'ママ', color:'#f472b6', tasks: state.tasks.map(t=>({label:t, done:false, enabled:true})).concat([{label:'化粧', done:false, enabled:true}])},
+      {name:'パパ', color:'#60a5fa', tasks: state.tasks.map(t=>({label:t, done:false, enabled:true}))}
     ];
     state.__seeded = true; save(); renderAll();
   }
