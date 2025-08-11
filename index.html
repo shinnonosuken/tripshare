@@ -10,10 +10,11 @@
 :root{
   --bg:#f7f7fb; --ink:#222; --muted:#6b7280;
   --brand:#ff7043; --accent:#2563eb;
-  --grid:#e5e7eb; --hour:#d1d5db;
+  --grid:#e5e7eb; --major:#cdd3da;
   --card-ink:#fff; --shadow:0 6px 18px rgba(0,0,0,.08);
   --radius:14px; --col-gap:10px;
-  --px-per-min:3; /* 1分=3px（3h=540px） */
+
+  --px-per-min:2.6; /* 1分=2.6px → 150分=390px 程度で1画面に収まる */
   /* メンバー固定色 */
   --col0:#e6f0ff; --card0:#3b82f6; /* のすけ */
   --col1:#ffe7ee; --card1:#ef476f; /* ママ   */
@@ -24,29 +25,29 @@
 html,body{height:100%}
 body{
   margin:0;
+  height:100svh; overflow:hidden; /* 1画面に収め、ページ全体のスクロール禁止 */
   padding-top:calc(env(safe-area-inset-top) + 6px);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",Arial,sans-serif;
   background:var(--bg); color:var(--ink);
+  -webkit-user-select:none; user-select:none; /* テキスト選択抑止（ドラッグ/長押しOKに調整済み） */
 }
-.app{ max-width:1100px; margin:0 auto; padding:8px 10px calc(env(safe-area-inset-bottom) + 16px); }
+.app{
+  height:100%; max-width:1100px; margin:0 auto;
+  padding:8px 10px calc(env(safe-area-inset-bottom) + 12px);
+  display:flex; flex-direction:column; gap:8px;
+}
 
-/* ヘッダー（コンパクト＋強調） */
+/* ヘッダー（コンパクト） */
 .header{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:8px; margin-bottom:8px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
 }
 .title{
   background:#fff; border-radius:12px; box-shadow:var(--shadow);
   padding:6px 10px; min-height:44px;
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
-.ttl{font-size:16px; font-weight:800}
-.place{
-  font-weight:800; color:#111; font-size:15px; min-width:180px;
-}
-.departBig{
-  font-weight:900; color:var(--brand); font-size:18px; letter-spacing:0.03em;
-}
+.place{ font-weight:800; color:#111; font-size:15px; min-width:180px; }
+.departBig{ font-weight:900; color:var(--brand); font-size:18px; letter-spacing:0.03em; }
 .countdown{font-weight:800; color:#111; font-variant-numeric:tabular-nums;}
 .controls{ display:flex; gap:8px; align-items:center; }
 .btn{
@@ -59,29 +60,34 @@ body{
   background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; border:1px solid transparent; font-size:14px;
 }
 
-/* タイムライン（縦スクロール） */
+/* タイムライン領域（ページの残りをすべて使う） */
 .gridwrap{
-  position:relative; z-index:1;
+  position:relative; flex:1; min-height:260px;
   background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
-  padding:8px; overflow:auto; max-height:70vh;
-  touch-action:pan-y; -webkit-user-select:none; user-select:none; /* テキスト選択抑止 */
+  padding:8px; overflow:hidden; /* ← 内部もスクロールさせず固定表示 */
+  touch-action:none; /* タイムライン操作中にページが動かないように */
 }
 .grid{
-  display:grid;
-  grid-template-columns:52px repeat(4,1fr); /* ← 時間列を狭く、メンバー列広く */
-  gap:var(--col-gap);
-  height:540px; /* JSで再設定 */
   position:relative;
+  display:grid;
+  grid-template-columns:44px repeat(4,1fr); /* 左の時間列を細く、メンバー列を広く */
+  gap:var(--col-gap);
+  height:390px; /* JSで上書き（150分×px） */
 }
-.timeAxis{
-  position:relative; z-index:3; background:#fff;
+
+/* 横線（全カラムに延長） */
+.rowLine{
+  position:absolute; left:0; right:0; height:1px; background:var(--grid); z-index:1;
 }
-.timeAxis .tick{position:absolute; left:0; right:0; height:1px; background:var(--grid)}
-.timeAxis .hour{background:var(--hour); height:1.5px}
-.timeAxis .label{
-  position:absolute; left:4px; top:-9px; font-size:12px; color:#6b7280; font-weight:700;
-  background:#fff; padding:0 2px; border-radius:4px;
+.rowLine.major{ background:var(--major); height:1.5px; } /* 00/30分 */
+.timeLabel{
+  position:absolute; left:4px; z-index:3;
+  font-size:12px; color:#6b7280; font-weight:700;
+  background:#fff; padding:0 2px; border-radius:4px; transform:translateY(-9px);
 }
+
+/* 左の時間列（常時表示） */
+.timeAxis{ position:relative; z-index:3; background:#fff; }
 
 /* メンバー列（縦帯カラー） */
 .memberCol{
@@ -92,11 +98,10 @@ body{
 .memberCol[data-index="1"]{ background:var(--col1); }
 .memberCol[data-index="2"]{ background:var(--col2); }
 .memberCol[data-index="3"]{ background:var(--col3); }
-
 .memberHead{
   position:sticky; top:0; z-index:4; background:rgba(255,255,255,.9); backdrop-filter:saturate(120%) blur(4px);
   color:#1f2937; font-weight:900; text-align:center; padding:6px 6px; border-radius:6px; margin:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* 2行化防止 */
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
 /* カード（アイコンのみ） */
@@ -108,6 +113,7 @@ body{
   font-weight:900; font-size:18px; line-height:1; text-align:center;
   box-shadow:0 8px 14px rgba(0,0,0,.15);
   touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+  z-index:2;
 }
 .card .icon{ display:block; pointer-events:none; }
 .card .resize{ position:absolute; left:0; right:0; bottom:-6px; height:12px; cursor:ns-resize; }
@@ -121,35 +127,37 @@ body{
   box-shadow:0 6px 12px rgba(239,68,68,.35);
 }
 
-/* 特殊ライン */
-.departLine,.nowLine{ position:absolute; left:0; right:0; height:2px; z-index:2; }
+/* 現在・出発ライン（上に出す） */
+.departLine,.nowLine{ position:absolute; left:0; right:0; height:2px; z-index:5; }
 .departLine{ background:var(--brand) }
 .nowLine{ background:var(--accent) }
 .departHandle{
   position:absolute; right:6px; top:-10px; background:var(--brand); color:#fff; padding:6px 10px; border-radius:8px;
-  font-weight:900; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none;
+  font-weight:900; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none; z-index:6;
 }
 
-/* パレット */
-.palette{ position:relative; z-index:2; margin-top:10px; background:#111827; color:#e5e7eb; border-radius:16px; padding:12px; box-shadow:var(--shadow); }
+/* パレット（コンパクト） */
+.palette{
+  background:#111827; color:#e5e7eb; border-radius:16px; padding:10px; box-shadow:var(--shadow);
+}
 .palette h3{margin:0 0 8px 0; font-size:14px; letter-spacing:.02em}
-.tags{display:flex; flex-wrap:wrap; gap:8px; max-height:40vh; overflow:auto}
+.tags{display:flex; flex-wrap:wrap; gap:8px; max-height:28vh; overflow:auto}
 .tag{
   background:#3b82f6; color:#fff; padding:8px 10px; border-radius:999px; font-weight:700; font-size:14px;
   box-shadow:0 6px 12px rgba(59,130,246,.3); touch-action:none; user-select:none; white-space:nowrap;
 }
 .tag:active{transform:scale(.98)}
-.addRow{display:flex; gap:8px; margin-top:10px}
+.addRow{display:flex; gap:8px; margin-top:8px}
 .small{font-size:12px; color:#cbd5e1}
 
-/* トースト＆アラーム */
+/* トースト＆アラーム＆モーダル */
 .toast{
   position:fixed; left:50%; bottom:calc(12px + env(safe-area-inset-bottom)); transform:translateX(-50%);
-  background:#111827; color:#fff; padding:10px 14px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; z-index:90; opacity:0; pointer-events:none; transition:opacity .2s;
+  background:#111827; color:#fff; padding:10px 14px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; z-index:100; opacity:0; pointer-events:none; transition:opacity .2s;
 }
 .toast.show{opacity:1}
 .alarm{
-  position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; display:none; align-items:center; justify-content:center;
+  position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:120; display:none; align-items:center; justify-content:center;
 }
 .alarm .panel{
   background:#fff; border-radius:16px; padding:18px; width:min(86vw,420px); text-align:center; box-shadow:0 14px 40px rgba(0,0,0,.2);
@@ -157,19 +165,25 @@ body{
 .alarm .panel .msg{ font-size:28px; font-weight:900; margin-bottom:6px; }
 .alarm .panel .sub{ color:#555; margin-bottom:14px; }
 .alarm .panel .ok{ background:var(--brand); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-weight:800; }
-input,button{ -webkit-tap-highlight-color: transparent; }
+
+.modal{
+  position:fixed; inset:0; z-index:110; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.45);
+}
+.modal .box{
+  background:#fff; border-radius:14px; padding:14px; width:min(90vw,420px); box-shadow:0 14px 40px rgba(0,0,0,.18);
+}
+.modal .row{display:flex; gap:8px; align-items:center; margin:8px 0}
+.modal .ok{ background:var(--brand); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-weight:800; }
+.modal .close{ background:#e5e7eb; color:#111; border:none; border-radius:10px; padding:10px 14px; font-weight:700; }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
     <div class="title">
-      <span class="ttl">出発時間の共有</span>
       <input class="input place" id="place" placeholder="行き先（例：イオンモール）">
-      <div class="departBig">出発 <input class="input" id="depart" type="time" step="600" style="font-weight:900;width:98px"></div>
+      <div class="departBig">出発 <button class="btn" id="openDepart">設定</button></div>
       <span class="countdown" id="countdown">--:--</span>
-      <button class="btn ghost" id="soundBtn" title="初回のみ">サウンド有効化</button>
-      <button class="btn" id="saveBtn">保存</button>
     </div>
     <div class="controls">
       <button class="btn ghost" id="resetBtn">全削除</button>
@@ -179,10 +193,10 @@ input,button{ -webkit-tap-highlight-color: transparent; }
 
   <div class="gridwrap" id="gridwrap">
     <div id="grid" class="grid">
-      <!-- 左：時間軸（常時表示） -->
+      <!-- 左：時間軸 -->
       <div class="timeAxis" id="timeAxis"></div>
 
-      <!-- 右：メンバー列4本（固定色・名前） -->
+      <!-- 右：メンバー列4本（固定色） -->
       <div class="memberCol" data-index="0"><div class="memberHead">のすけ</div></div>
       <div class="memberCol" data-index="1"><div class="memberHead">ママ</div></div>
       <div class="memberCol" data-index="2"><div class="memberHead">そう</div></div>
@@ -206,8 +220,25 @@ input,button{ -webkit-tap-highlight-color: transparent; }
   </div>
 </div>
 
+<!-- トースト -->
 <div class="toast" id="toast"></div>
 
+<!-- 出発時間の設定モーダル -->
+<div class="modal" id="depModal">
+  <div class="box">
+    <div style="font-weight:900;margin-bottom:6px;">出発時間の設定</div>
+    <div class="row">
+      <input class="input" id="departInput" type="time" step="600" style="font-weight:900;width:120px">
+      <span class="small">※10分単位</span>
+    </div>
+    <div class="row">
+      <button class="ok" id="depOk">完了</button>
+      <button class="close" id="depCancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- アラーム -->
 <div class="alarm" id="alarm">
   <div class="panel">
     <div class="msg" id="alarmMsg">10分前</div>
@@ -226,16 +257,21 @@ input,button{ -webkit-tap-highlight-color: transparent; }
   const departHandle = document.getElementById('departHandle');
   const nowLine = document.getElementById('nowLine');
   const placeEl = document.getElementById('place');
-  const departEl = document.getElementById('depart');
-  const saveBtn = document.getElementById('saveBtn');
+
   const resetBtn = document.getElementById('resetBtn');
   const shareBtn = document.getElementById('shareBtn');
   const tagsWrap = document.getElementById('tags');
   const addTaskBtn = document.getElementById('addTaskBtn');
   const newTaskEl = document.getElementById('newTask');
   const toastEl = document.getElementById('toast');
-  const soundBtn = document.getElementById('soundBtn');
   const countdownEl = document.getElementById('countdown');
+
+  const depModal = document.getElementById('depModal');
+  const openDepart = document.getElementById('openDepart');
+  const departInput = document.getElementById('departInput');
+  const depOk = document.getElementById('depOk');
+  const depCancel = document.getElementById('depCancel');
+
   const alarmEl = document.getElementById('alarm');
   const alarmMsgEl = document.getElementById('alarmMsg');
   const alarmOK = document.getElementById('alarmOK');
@@ -246,10 +282,10 @@ input,button{ -webkit-tap-highlight-color: transparent; }
   const withIcon = (name) => `${iconOf(name)} ${name}`;
 
   // ===== State =====
-  const LS_KEYS = ['tripshare_v5','tripshare_v4','tripshare_v3'];
+  const LS_KEYS = ['tripshare_v6','tripshare_v5'];
   let state = {
     place: "",
-    departAt: +roundToSlot(new Date(), 10),
+    departAt: +roundTo10Min(+roundToSlot(new Date(),10)),
     slot: 10,
     tasksPalette: ["着替え","トイレ","持ち物","食器片付け","ゴミ捨て","化粧"],
     events: [], // {id, memberIndex, title, start, end}
@@ -259,53 +295,48 @@ input,button{ -webkit-tap-highlight-color: transparent; }
 
   // ===== Audio =====
   let audioCtx=null, beepOsc=null, beepGain=null, alarmTimer=null;
-  function initAudio(){
+  function ensureAudio(){
     if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    showToast("サウンドを有効化しました");
   }
   function startBeep(){
-    if(!audioCtx) return;
-    stopBeep();
-    beepOsc = audioCtx.createOscillator();
-    beepGain = audioCtx.createGain();
-    beepOsc.type = 'sine'; beepOsc.frequency.value = 880;
-    beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination);
-    beepGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    for(let i=0;i<60;i++){
-      const t = audioCtx.currentTime + i*0.5;
-      beepGain.gain.setValueAtTime(0.001, t);
-      beepGain.gain.exponentialRampToValueAtTime(0.08, t+0.1);
-      beepGain.gain.exponentialRampToValueAtTime(0.001, t+0.5);
-    }
-    beepOsc.start();
+    try{
+      ensureAudio();
+      stopBeep();
+      beepOsc = audioCtx.createOscillator();
+      beepGain = audioCtx.createGain();
+      beepOsc.type = 'sine'; beepOsc.frequency.value = 880;
+      beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination);
+      beepGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      for(let i=0;i<60;i++){
+        const t = audioCtx.currentTime + i*0.5;
+        beepGain.gain.setValueAtTime(0.001, t);
+        beepGain.gain.exponentialRampToValueAtTime(0.08, t+0.1);
+        beepGain.gain.exponentialRampToValueAtTime(0.001, t+0.5);
+      }
+      beepOsc.start();
+    }catch(e){}
   }
   function stopBeep(){
     if(beepOsc){ try{beepOsc.stop();}catch{} beepOsc.disconnect(); beepOsc=null; }
     if(beepGain){ try{beepGain.disconnect();}catch{} beepGain=null; }
     if(alarmTimer){ clearTimeout(alarmTimer); alarmTimer=null; }
   }
-  soundBtn.addEventListener('click', initAudio);
 
   // ===== Helpers =====
   function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1600); }
   function pad(n){return (n<10?'0':'')+n}
   function fmtHM(d){ return pad(d.getHours())+":"+pad(d.getMinutes()) }
-  function parseHM(hm, baseDate=new Date()){
-    const [h,m]=hm.split(':').map(Number); const d=new Date(baseDate);
-    d.setHours(h,m||0,0,0); return d;
-  }
+  function parseHM(hm, baseDate=new Date()){ const [h,m]=hm.split(':').map(Number); const d=new Date(baseDate); d.setHours(h,m||0,0,0); return +d; }
   function roundToSlot(d, mins){ const base=new Date(d); base.setSeconds(0,0); const q=Math.round(base.getMinutes()/mins)*mins; base.setMinutes(q); return base; }
-  function roundTo10Min(ms){
-    const d=new Date(ms); const m=d.getMinutes(); const r=Math.round(m/10)*10;
-    d.setMinutes(r,0,0); return +d;
-  }
+  function roundTo10Min(ms){ const d=new Date(ms); const r=Math.round(d.getMinutes()/10)*10; d.setMinutes(r,0,0); return +d; }
   function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
   function pxPerMin(){ return Number(getComputedStyle(document.documentElement).getPropertyValue('--px-per-min')); }
+  // 表示窓：出発 -2h ～ +0.5h（150分）
   function getWindow(){
     const dep=new Date(state.departAt);
-    const start=new Date(+dep - 150*60*1000); // -2.5h
-    const end  =new Date(+dep +  30*60*1000); // +0.5h
+    const start=new Date(+dep - 120*60*1000);
+    const end  =new Date(+dep +  30*60*1000);
     return {start,end,durationMs:(+end - +start)};
   }
 
@@ -366,7 +397,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     showToast("タスクを追加しました");
   });
 
-  // ===== D&D ghost =====
+  // ===== D&D ghost from palette =====
   function startGhostDrag(title){
     const ghost=document.createElement('div');
     ghost.className='card ghost';
@@ -387,10 +418,6 @@ input,button{ -webkit-tap-highlight-color: transparent; }
         const r=col.getBoundingClientRect();
         if(clientX>r.left && clientX<r.right && clientY>r.top && clientY<r.bottom){ overColIndex=idx; }
       });
-      const gwRect = gridwrap.getBoundingClientRect();
-      const margin = 60;
-      if(clientY > gwRect.bottom - margin) gridwrap.scrollTop += 12;
-      if(clientY < gwRect.top + margin)    gridwrap.scrollTop -= 12;
     };
 
     const finalize=(clientX, clientY)=>{
@@ -398,7 +425,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
       if(overColIndex===-1) return;
       const col = memberCol(overColIndex);
       const r=col.getBoundingClientRect();
-      const y = clamp(clientY - r.top + gridwrap.scrollTop - gridwrap.offsetTop, 0, r.height + gridwrap.scrollTop);
+      const y = clamp(clientY - r.top, 0, r.height);
       const slotPx = state.slot * pxPerMin();
       const ny = Math.round(y/slotPx)*slotPx;
       const start = +getWindow().start + (ny/pxPerMin())*60000;
@@ -417,29 +444,33 @@ input,button{ -webkit-tap-highlight-color: transparent; }
   function rebuildGrid(){
     const win=getWindow();
     const durMin = (win.durationMs/60000)|0;
-    grid.style.height = (durMin * pxPerMin()) + "px";
+    const height = durMin * pxPerMin();
+    grid.style.height = height + "px";
 
-    // 時間軸（常時表示）
-    timeAxis.innerHTML="";
-    const step = state.slot;
-    for(let m=0; m<=durMin; m+=step){
+    // 全面の行ライン（10分ごと）
+    // 既存クリア
+    grid.querySelectorAll('.rowLine, .timeLabel').forEach(el=>el.remove());
+    for(let m=0; m<=durMin; m+=10){
       const y = m*pxPerMin();
-      const tick=document.createElement('div');
       const abs = new Date(+win.start + m*60000);
-      const isHour = abs.getMinutes()===0;
-      tick.className='tick' + (isHour?' hour':'');
-      tick.style.top = y + "px";
-      timeAxis.appendChild(tick);
-      if(isHour){
-        const lab=document.createElement('div'); lab.className='label';
+      // ライン
+      const line=document.createElement('div');
+      line.className='rowLine' + ((abs.getMinutes()%30===0)?' major':'');
+      line.style.top = y + "px";
+      grid.appendChild(line);
+      // 左ラベル（毎時のみ）
+      if(abs.getMinutes()===0){
+        const lab=document.createElement('div');
+        lab.className='timeLabel';
         lab.style.top = y + "px";
-        lab.textContent = `${pad(abs.getHours())}:${pad(abs.getMinutes())}`;
-        timeAxis.appendChild(lab);
+        lab.textContent = `${pad(abs.getHours())}:00`;
+        grid.appendChild(lab);
       }
     }
 
     placeDepartLine(); placeNowLine();
 
+    // カード再描画
     document.querySelectorAll('.memberCol').forEach(col=> col.querySelectorAll('.card').forEach(el=>el.remove()));
     state.events.forEach(ev=> addCard(ev));
   }
@@ -461,7 +492,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
 
   function memberCol(index){ return document.querySelectorAll('.memberCol')[index]; }
 
-  // ===== Card =====
+  // ===== Card（移動／長押しリサイズ／左スワイプ削除） =====
   function addCard(ev){
     const col = memberCol(ev.memberIndex);
     const win=getWindow();
@@ -472,7 +503,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     card.className='card';
     card.style.top = y0 + "px";
     card.style.height = Math.max(h, pxPerMin()*10) + "px";
-    card.style.background = CARD_COLORS[ev.memberIndex] || '#3b82f6';
+    card.style.background = (['#3b82f6','#ef476f','#06d6a0','#ffa600'][ev.memberIndex] || '#3b82f6');
     card.dataset.id = ev.id; card.dataset.member = ev.memberIndex;
     card.innerHTML = `<span class="icon">${iconOf(ev.title)}</span><div class="resize"></div><button class="delBtn" title="削除">削除</button>`;
 
@@ -514,10 +545,6 @@ input,button{ -webkit-tap-highlight-color: transparent; }
         let ny=origTop + dy;
         ny = Math.round(ny/slotPx)*slotPx;
         card.style.top = ny + "px";
-        const gwRect = gridwrap.getBoundingClientRect();
-        const margin = 60;
-        if(e.clientY > gwRect.bottom - margin) gridwrap.scrollTop += 10;
-        if(e.clientY < gwRect.top + margin)    gridwrap.scrollTop -= 10;
       }
     };
     const onUp=(e)=>{
@@ -554,7 +581,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     col.appendChild(card);
   }
 
-  // ===== Depart handle (10分単位固定) =====
+  // ===== Depart handle（10分スナップ） =====
   (()=> {
     let pid=null, startY=null, startTop=null;
     const down=(e)=>{ e.preventDefault(); departHandle.setPointerCapture(e.pointerId); pid=e.pointerId; startY=e.clientY; startTop=parseFloat(departHandle.style.top)||0; };
@@ -573,7 +600,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
       const win=getWindow();
       const y=parseFloat(departLine.style.top);
       let newDep = +win.start + (y/pxPerMin())*60000;
-      newDep = roundTo10Min(newDep); // ← 10分単位に固定
+      newDep = roundTo10Min(newDep);
       if (newDep !== state.departAt){
         if(confirm("時間変更を通知しますか？")){
           state.departAt = newDep; save();
@@ -590,13 +617,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     departHandle.addEventListener('pointerup', up);
   })();
 
-  // ===== Header =====
-  saveBtn.addEventListener('click', ()=>{
-    state.place = placeEl.value.trim();
-    const hm = departEl.value || fmtHM(new Date(state.departAt));
-    state.departAt = roundTo10Min(+parseHM(hm, new Date(state.departAt))); // 入力も10分に
-    save(); rebuildGrid(); showToast("保存しました"); resetAlarms();
-  });
+  // ===== Header buttons =====
   resetBtn.addEventListener('click', ()=>{
     if(confirm('全てのカードと設定を削除しますか？')){
       state.events=[]; save(); rebuildGrid();
@@ -606,6 +627,23 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     const data = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state)))));
     const url = location.origin+location.pathname+'?state='+data;
     navigator.clipboard.writeText(url).then(()=> showToast("共有リンクをコピーしました"));
+  });
+
+  // ===== Depart modal =====
+  openDepart.addEventListener('click', ()=>{
+    departInput.value = fmtHM(new Date(state.departAt));
+    depModal.style.display='flex';
+  });
+  depCancel.addEventListener('click', ()=> depModal.style.display='none');
+  depOk.addEventListener('click', ()=>{
+    // ここで保存（完了＝保存）
+    const next = roundTo10Min(parseHM(departInput.value, new Date(state.departAt)));
+    state.departAt = next; state.place = placeEl.value.trim(); save();
+    depModal.style.display='none';
+    rebuildGrid(); placeDepartLine(); resetAlarms();
+    // サウンド許可（初回のみでもOK）
+    try{ ensureAudio(); }catch{}
+    showToast("保存しました");
   });
 
   // ===== Import via URL =====
@@ -632,8 +670,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
     countdownEl.textContent = `残り ${pad(mm)}:${pad(ss)}`;
     const mins = Math.ceil(diff/60000);
     if(ALARM_MINUTES.includes(mins) && !fired[mins]){
-      fired[mins]=true;
-      triggerAlarm(mins);
+      fired[mins]=true; triggerAlarm(mins);
     }
   }
   setInterval(updateCountdown, 1000);
@@ -641,7 +678,7 @@ input,button{ -webkit-tap-highlight-color: transparent; }
   function triggerAlarm(mins){
     alarmMsgEl.textContent = `${mins}分前`;
     alarmEl.style.display='flex';
-    if(navigator.vibrate) navigator.vibrate([80,120,80,200,120,80]); // しっかり振動
+    if(navigator.vibrate) navigator.vibrate([80,120,80,200,120,80]);
     startBeep();
     alarmTimer = setTimeout(()=>{ stopBeep(); }, 30000);
   }
@@ -652,18 +689,13 @@ input,button{ -webkit-tap-highlight-color: transparent; }
 
   // ===== Init =====
   function init(){
-    // load
-    for(const key of LS_KEYS){ const s=localStorage.getItem(key); if(s){ try{ state=JSON.parse(s); break; }catch{} } }
+    load();
     placeEl.value = state.place||"";
-    const dep = new Date(state.departAt);
-    departEl.value = pad(dep.getHours())+":"+pad(dep.getMinutes());
     rebuildTags();
     rebuildGrid();
     updateCountdown();
   }
-  soundBtn.addEventListener('click', ()=>{}); // keep
   init();
-
 })();
 </script>
 </body>
