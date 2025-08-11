@@ -14,7 +14,7 @@
   --card-ink:#fff; --shadow:0 6px 18px rgba(0,0,0,.08);
   --radius:14px; --col-gap:10px;
 
-  --px-per-min:2.6; /* 1分=2.6px → 150分=390px 程度で1画面に収まる */
+  --px-per-min:2.6; /* 1分=2.6px → 150分=390px */
   /* メンバー固定色 */
   --col0:#e6f0ff; --card0:#3b82f6; /* のすけ */
   --col1:#ffe7ee; --card1:#ef476f; /* ママ   */
@@ -24,12 +24,11 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
-  height:100svh; overflow:hidden; /* 1画面に収め、ページ全体のスクロール禁止 */
+  margin:0; height:100svh; overflow:hidden; /* ページ全体はスクロールしない */
   padding-top:calc(env(safe-area-inset-top) + 6px);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",Arial,sans-serif;
   background:var(--bg); color:var(--ink);
-  -webkit-user-select:none; user-select:none; /* テキスト選択抑止（ドラッグ/長押しOKに調整済み） */
+  -webkit-user-select:none; user-select:none;
 }
 .app{
   height:100%; max-width:1100px; margin:0 auto;
@@ -37,17 +36,18 @@ body{
   display:flex; flex-direction:column; gap:8px;
 }
 
-/* ヘッダー（コンパクト） */
-.header{
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-}
+/* ヘッダー（シンプル） */
+.header{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .title{
   background:#fff; border-radius:12px; box-shadow:var(--shadow);
   padding:6px 10px; min-height:44px;
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
 .place{ font-weight:800; color:#111; font-size:15px; min-width:180px; }
-.departBig{ font-weight:900; color:var(--brand); font-size:18px; letter-spacing:0.03em; }
+.departWrap{ display:flex; align-items:center; gap:8px; }
+.departLabel{ font-weight:900; letter-spacing:.03em; }
+.departUnset{ color:#9ca3af; font-weight:800; }
+.departSet{ color:var(--brand); font-weight:900; font-size:18px; }
 .countdown{font-weight:800; color:#111; font-variant-numeric:tabular-nums;}
 .controls{ display:flex; gap:8px; align-items:center; }
 .btn{
@@ -60,36 +60,36 @@ body{
   background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; border:1px solid transparent; font-size:14px;
 }
 
-/* タイムライン領域（ページの残りをすべて使う） */
+/* タイムライン（ページの残りすべて） */
 .gridwrap{
   position:relative; flex:1; min-height:260px;
   background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
-  padding:8px; overflow:hidden; /* ← 内部もスクロールさせず固定表示 */
-  touch-action:none; /* タイムライン操作中にページが動かないように */
+  padding:8px; overflow:hidden;
 }
 .grid{
   position:relative;
   display:grid;
-  grid-template-columns:44px repeat(4,1fr); /* 左の時間列を細く、メンバー列を広く */
+  grid-template-columns:56px repeat(4,1fr); /* 左：時間列やや広め、メンバー列も確保 */
   gap:var(--col-gap);
-  height:390px; /* JSで上書き（150分×px） */
+  height:390px; /* 150分×2.6px（JSで上書き） */
 }
 
-/* 横線（全カラムに延長） */
-.rowLine{
-  position:absolute; left:0; right:0; height:1px; background:var(--grid); z-index:1;
-}
-.rowLine.major{ background:var(--major); height:1.5px; } /* 00/30分 */
+/* 左の時刻エリアは“専用スクロール” */
+.timeAxis{ position:relative; z-index:4; background:#fff; overflow:hidden; }
+.timeScroll{ position:absolute; inset:0; overflow:auto; }
+.timeSpacer{ width:100%; height:100%; } /* スクロール量のためのスペーサ */
+.timeLabels{ position:absolute; inset:0; pointer-events:none; } /* スクロールに同期させるラベル群 */
 .timeLabel{
-  position:absolute; left:4px; z-index:3;
-  font-size:12px; color:#6b7280; font-weight:700;
+  position:absolute; left:4px; font-size:12px; color:#6b7280; font-weight:700;
   background:#fff; padding:0 2px; border-radius:4px; transform:translateY(-9px);
 }
 
-/* 左の時間列（常時表示） */
-.timeAxis{ position:relative; z-index:3; background:#fff; }
+/* 全面ライン（横線を全列へ延長） */
+.linesLayer{ position:absolute; inset:0; z-index:1; }
+.rowLine{ position:absolute; left:0; right:0; height:1px; background:var(--grid); }
+.rowLine.major{ background:var(--major); height:1.5px; } /* 00/30分は太め */
 
-/* メンバー列（縦帯カラー） */
+/* メンバー列（中身だけスクロール同期し、列自体はスクロールさせない） */
 .memberCol{
   position:relative; border-left:1px dashed var(--grid); border-right:1px dashed var(--grid);
   border-radius:8px; overflow:visible; min-width:0;
@@ -99,10 +99,11 @@ body{
 .memberCol[data-index="2"]{ background:var(--col2); }
 .memberCol[data-index="3"]{ background:var(--col3); }
 .memberHead{
-  position:sticky; top:0; z-index:4; background:rgba(255,255,255,.9); backdrop-filter:saturate(120%) blur(4px);
-  color:#1f2937; font-weight:900; text-align:center; padding:6px 6px; border-radius:6px; margin:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+  position:sticky; top:0; z-index:3; background:rgba(255,255,255,.92); backdrop-filter:saturate(120%) blur(3px);
+  color:#1f2937; font-weight:900; text-align:center; padding:6px 6px; border-radius:6px; margin:6px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+.colBody{ position:absolute; left:0; right:0; top:0; height:100%; will-change:transform; } /* ← ここをtranslateYで同期 */
 
 /* カード（アイコンのみ） */
 .card{
@@ -120,14 +121,16 @@ body{
 .card.dragging{opacity:.92; outline:2px solid rgba(255,255,255,.6)}
 .card.ghost{opacity:.6}
 .card{ transition:transform .15s ease; }
+.card .delBtn{ display:none; }                 /* ← デフォルト非表示 */
 .card.swipeLeft{ transform:translateX(-60px); }
+.card.swipeLeft .delBtn{ display:block; }      /* ← スワイプ時だけ表示 */
 .card .delBtn{
   position:absolute; top:50%; right:-54px; transform:translateY(-50%);
   background:#ef4444; color:#fff; border:none; border-radius:10px; padding:8px 10px; font-weight:800;
   box-shadow:0 6px 12px rgba(239,68,68,.35);
 }
 
-/* 現在・出発ライン（上に出す） */
+/* 現在・出発ライン（最前面） */
 .departLine,.nowLine{ position:absolute; left:0; right:0; height:2px; z-index:5; }
 .departLine{ background:var(--brand) }
 .nowLine{ background:var(--accent) }
@@ -136,21 +139,24 @@ body{
   font-weight:900; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none; z-index:6;
 }
 
-/* パレット（コンパクト） */
+/* タスクパレット：2行ぶんの高さで横スクロール */
 .palette{
   background:#111827; color:#e5e7eb; border-radius:16px; padding:10px; box-shadow:var(--shadow);
 }
-.palette h3{margin:0 0 8px 0; font-size:14px; letter-spacing:.02em}
-.tags{display:flex; flex-wrap:wrap; gap:8px; max-height:28vh; overflow:auto}
+.tags{
+  display:grid; grid-auto-flow:column; grid-auto-rows:40px; grid-template-rows:repeat(2,40px);
+  gap:8px 8px; overflow-x:auto; overflow-y:hidden; white-space:nowrap; height:calc(40px*2 + 8px);
+  padding-bottom:2px;
+}
 .tag{
   background:#3b82f6; color:#fff; padding:8px 10px; border-radius:999px; font-weight:700; font-size:14px;
   box-shadow:0 6px 12px rgba(59,130,246,.3); touch-action:none; user-select:none; white-space:nowrap;
 }
 .tag:active{transform:scale(.98)}
-.addRow{display:flex; gap:8px; margin-top:8px}
+.toolbar{ display:flex; gap:8px; margin-top:8px; align-items:center; }
 .small{font-size:12px; color:#cbd5e1}
 
-/* トースト＆アラーム＆モーダル */
+/* トースト／アラーム／モーダル */
 .toast{
   position:fixed; left:50%; bottom:calc(12px + env(safe-area-inset-bottom)); transform:translateX(-50%);
   background:#111827; color:#fff; padding:10px 14px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; z-index:100; opacity:0; pointer-events:none; transition:opacity .2s;
@@ -182,8 +188,13 @@ body{
   <div class="header">
     <div class="title">
       <input class="input place" id="place" placeholder="行き先（例：イオンモール）">
-      <div class="departBig">出発 <button class="btn" id="openDepart">設定</button></div>
-      <span class="countdown" id="countdown">--:--</span>
+      <div class="departWrap">
+        <span class="departLabel">出発</span>
+        <button class="btn" id="openDepart">
+          <span id="departText" class="departUnset">設定</span>
+        </button>
+        <span class="countdown" id="countdown">--:--</span>
+      </div>
     </div>
     <div class="controls">
       <button class="btn ghost" id="resetBtn">全削除</button>
@@ -193,14 +204,20 @@ body{
 
   <div class="gridwrap" id="gridwrap">
     <div id="grid" class="grid">
-      <!-- 左：時間軸 -->
-      <div class="timeAxis" id="timeAxis"></div>
+      <!-- 左：時刻エリア（専用スクロール） -->
+      <div class="timeAxis">
+        <div class="timeScroll" id="timeScroll"><div class="timeSpacer" id="timeSpacer"></div></div>
+        <div class="timeLabels" id="timeLabels"></div>
+      </div>
 
-      <!-- 右：メンバー列4本（固定色） -->
-      <div class="memberCol" data-index="0"><div class="memberHead">のすけ</div></div>
-      <div class="memberCol" data-index="1"><div class="memberHead">ママ</div></div>
-      <div class="memberCol" data-index="2"><div class="memberHead">そう</div></div>
-      <div class="memberCol" data-index="3"><div class="memberHead">しゅう</div></div>
+      <!-- メンバー列（列自体はスクロールしない。中身をtranslateで同期） -->
+      <div class="memberCol" data-index="0"><div class="memberHead">のすけ</div><div class="colBody"></div></div>
+      <div class="memberCol" data-index="1"><div class="memberHead">ママ</div><div class="colBody"></div></div>
+      <div class="memberCol" data-index="2"><div class="memberHead">そう</div><div class="colBody"></div></div>
+      <div class="memberCol" data-index="3"><div class="memberHead">しゅう</div><div class="colBody"></div></div>
+
+      <!-- 全面ライン（scroll同期） -->
+      <div class="linesLayer" id="linesLayer"></div>
 
       <!-- 特殊ライン -->
       <div class="departLine" id="departLine"></div>
@@ -210,12 +227,10 @@ body{
   </div>
 
   <div class="palette" id="palette">
-    <h3>【タスク】（ドラッグでタイムラインへ）</h3>
     <div class="tags" id="tags"></div>
-    <div class="addRow">
-      <input class="input" id="newTask" placeholder="タスクを追加（例：水筒）" />
-      <button class="btn" id="addTaskBtn" type="button">追加</button>
-      <span class="small">※ 長押しでパレット削除／タイムラインのカードは左スワイプで削除</span>
+    <div class="toolbar">
+      <button class="btn" id="addTaskBtn" type="button">＋ 追加</button>
+      <span class="small">※ 長押しでパレット削除／タイムラインは左スワイプで削除</span>
     </div>
   </div>
 </div>
@@ -238,6 +253,18 @@ body{
   </div>
 </div>
 
+<!-- タスク追加モーダル -->
+<div class="modal" id="taskModal">
+  <div class="box">
+    <div style="font-weight:900;margin-bottom:6px;">タスク名を入力</div>
+    <div class="row"><input class="input" id="taskName" placeholder="例：水筒"></div>
+    <div class="row">
+      <button class="ok" id="taskOk">保存</button>
+      <button class="close" id="taskCancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- アラーム -->
 <div class="alarm" id="alarm">
   <div class="panel">
@@ -250,9 +277,11 @@ body{
 <script>
 (() => {
   // ===== DOM =====
-  const gridwrap = document.getElementById('gridwrap');
   const grid = document.getElementById('grid');
-  const timeAxis = document.getElementById('timeAxis');
+  const linesLayer = document.getElementById('linesLayer');
+  const timeLabels = document.getElementById('timeLabels');
+  const timeScroll = document.getElementById('timeScroll');
+  const timeSpacer = document.getElementById('timeSpacer');
   const departLine = document.getElementById('departLine');
   const departHandle = document.getElementById('departHandle');
   const nowLine = document.getElementById('nowLine');
@@ -262,7 +291,7 @@ body{
   const shareBtn = document.getElementById('shareBtn');
   const tagsWrap = document.getElementById('tags');
   const addTaskBtn = document.getElementById('addTaskBtn');
-  const newTaskEl = document.getElementById('newTask');
+
   const toastEl = document.getElementById('toast');
   const countdownEl = document.getElementById('countdown');
 
@@ -271,6 +300,12 @@ body{
   const departInput = document.getElementById('departInput');
   const depOk = document.getElementById('depOk');
   const depCancel = document.getElementById('depCancel');
+  const departText = document.getElementById('departText');
+
+  const taskModal = document.getElementById('taskModal');
+  const taskName = document.getElementById('taskName');
+  const taskOk = document.getElementById('taskOk');
+  const taskCancel = document.getElementById('taskCancel');
 
   const alarmEl = document.getElementById('alarm');
   const alarmMsgEl = document.getElementById('alarmMsg');
@@ -282,71 +317,53 @@ body{
   const withIcon = (name) => `${iconOf(name)} ${name}`;
 
   // ===== State =====
-  const LS_KEYS = ['tripshare_v6','tripshare_v5'];
+  const LS_KEYS = ['tripshare_v7','tripshare_v6'];
   let state = {
     place: "",
-    departAt: +roundTo10Min(+roundToSlot(new Date(),10)),
+    departAt: NaN,                // 未設定
     slot: 10,
     tasksPalette: ["着替え","トイレ","持ち物","食器片付け","ゴミ捨て","化粧"],
     events: [], // {id, memberIndex, title, start, end}
   };
-
   const CARD_COLORS = ['#3b82f6','#ef476f','#06d6a0','#ffa600'];
 
-  // ===== Audio =====
+  // Scroll offset（左の時刻スクロール量を保つ）
+  let scrollY = 0;
+
+  // ===== Audio for alarm =====
   let audioCtx=null, beepOsc=null, beepGain=null, alarmTimer=null;
-  function ensureAudio(){
-    if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-  }
+  function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } if(audioCtx.state==='suspended') audioCtx.resume(); }
   function startBeep(){
     try{
-      ensureAudio();
-      stopBeep();
-      beepOsc = audioCtx.createOscillator();
-      beepGain = audioCtx.createGain();
-      beepOsc.type = 'sine'; beepOsc.frequency.value = 880;
+      ensureAudio(); stopBeep();
+      beepOsc = audioCtx.createOscillator(); beepGain = audioCtx.createGain();
+      beepOsc.type='sine'; beepOsc.frequency.value=880;
       beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination);
       beepGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-      for(let i=0;i<60;i++){
-        const t = audioCtx.currentTime + i*0.5;
-        beepGain.gain.setValueAtTime(0.001, t);
-        beepGain.gain.exponentialRampToValueAtTime(0.08, t+0.1);
-        beepGain.gain.exponentialRampToValueAtTime(0.001, t+0.5);
-      }
+      for(let i=0;i<60;i++){ const t=audioCtx.currentTime+i*0.5; beepGain.gain.setValueAtTime(0.001,t); beepGain.gain.exponentialRampToValueAtTime(0.08,t+0.1); beepGain.gain.exponentialRampToValueAtTime(0.001,t+0.5); }
       beepOsc.start();
     }catch(e){}
   }
-  function stopBeep(){
-    if(beepOsc){ try{beepOsc.stop();}catch{} beepOsc.disconnect(); beepOsc=null; }
-    if(beepGain){ try{beepGain.disconnect();}catch{} beepGain=null; }
-    if(alarmTimer){ clearTimeout(alarmTimer); alarmTimer=null; }
-  }
+  function stopBeep(){ if(beepOsc){try{beepOsc.stop();}catch{} beepOsc.disconnect(); beepOsc=null;} if(beepGain){try{beepGain.disconnect();}catch{} beepGain=null;} if(alarmTimer){clearTimeout(alarmTimer); alarmTimer=null;} }
 
   // ===== Helpers =====
   function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1600); }
   function pad(n){return (n<10?'0':'')+n}
   function fmtHM(d){ return pad(d.getHours())+":"+pad(d.getMinutes()) }
-  function parseHM(hm, baseDate=new Date()){ const [h,m]=hm.split(':').map(Number); const d=new Date(baseDate); d.setHours(h,m||0,0,0); return +d; }
-  function roundToSlot(d, mins){ const base=new Date(d); base.setSeconds(0,0); const q=Math.round(base.getMinutes()/mins)*mins; base.setMinutes(q); return base; }
+  function parseHM(hm, base){ const [h,m]=hm.split(':').map(Number); const d=new Date(base||Date.now()); d.setHours(h,m||0,0,0); return +d; }
   function roundTo10Min(ms){ const d=new Date(ms); const r=Math.round(d.getMinutes()/10)*10; d.setMinutes(r,0,0); return +d; }
   function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
   function pxPerMin(){ return Number(getComputedStyle(document.documentElement).getPropertyValue('--px-per-min')); }
   // 表示窓：出発 -2h ～ +0.5h（150分）
   function getWindow(){
-    const dep=new Date(state.departAt);
+    const dep = isNaN(state.departAt) ? new Date() : new Date(state.departAt);
     const start=new Date(+dep - 120*60*1000);
     const end  =new Date(+dep +  30*60*1000);
     return {start,end,durationMs:(+end - +start)};
   }
 
   // ===== Load/Save =====
-  function load(){
-    for(const key of LS_KEYS){
-      const s=localStorage.getItem(key);
-      if(s){ try{ state=JSON.parse(s); break; }catch(e){} }
-    }
-  }
+  function load(){ for(const key of LS_KEYS){ const s=localStorage.getItem(key); if(s){ try{ state=JSON.parse(s); break; }catch(e){} } } }
   function save(){ localStorage.setItem(LS_KEYS[0], JSON.stringify(state)); }
 
   // ===== Palette =====
@@ -389,12 +406,17 @@ body{
     });
   }
 
+  // 追加モーダル
   addTaskBtn.addEventListener('click', ()=>{
-    const v=newTaskEl.value.trim(); if(!v) return;
-    if(!state.tasksPalette.includes(v)){ state.tasksPalette.push(v); rebuildTags(); save(); }
-    newTaskEl.value="";
-    tagsWrap.scrollTo({left:0, top:tagsWrap.scrollHeight, behavior:'smooth'});
-    showToast("タスクを追加しました");
+    taskName.value="";
+    taskModal.style.display='flex';
+    setTimeout(()=>taskName.focus(), 50);
+  });
+  taskCancel.addEventListener('click', ()=> taskModal.style.display='none');
+  taskOk.addEventListener('click', ()=>{
+    const v=taskName.value.trim(); if(!v) return;
+    if(!state.tasksPalette.includes(v)){ state.tasksPalette.push(v); save(); rebuildTags(); showToast("タスクを追加しました"); }
+    taskModal.style.display='none';
   });
 
   // ===== D&D ghost from palette =====
@@ -412,7 +434,7 @@ body{
     const move=(clientX, clientY)=>{
       const rect=grid.getBoundingClientRect();
       ghost.style.left = (clientX - rect.left - 20) + 'px';
-      ghost.style.top  = (clientY - rect.top  - 24) + 'px';
+      ghost.style.top  = (clientY - rect.top  - 24 + scrollY) + 'px'; // 見た目同期
       overColIndex=-1;
       document.querySelectorAll('.memberCol').forEach((col,idx)=>{
         const r=col.getBoundingClientRect();
@@ -425,7 +447,7 @@ body{
       if(overColIndex===-1) return;
       const col = memberCol(overColIndex);
       const r=col.getBoundingClientRect();
-      const y = clamp(clientY - r.top, 0, r.height);
+      const y = clamp(clientY - r.top + scrollY, 0, r.height + scrollY);
       const slotPx = state.slot * pxPerMin();
       const ny = Math.round(y/slotPx)*slotPx;
       const start = +getWindow().start + (ny/pxPerMin())*60000;
@@ -440,61 +462,78 @@ body{
     return { move, up:finalize, cancel };
   }
 
-  // ===== Grid =====
+  // ===== Grid / Lines / Labels =====
   function rebuildGrid(){
     const win=getWindow();
     const durMin = (win.durationMs/60000)|0;
     const height = durMin * pxPerMin();
     grid.style.height = height + "px";
+    timeSpacer.style.height = height + "px";
 
-    // 全面の行ライン（10分ごと）
-    // 既存クリア
-    grid.querySelectorAll('.rowLine, .timeLabel').forEach(el=>el.remove());
+    // ライン＆ラベル再生成
+    linesLayer.innerHTML=""; timeLabels.innerHTML="";
     for(let m=0; m<=durMin; m+=10){
       const y = m*pxPerMin();
       const abs = new Date(+win.start + m*60000);
-      // ライン
       const line=document.createElement('div');
       line.className='rowLine' + ((abs.getMinutes()%30===0)?' major':'');
       line.style.top = y + "px";
-      grid.appendChild(line);
-      // 左ラベル（毎時のみ）
+      linesLayer.appendChild(line);
+
       if(abs.getMinutes()===0){
         const lab=document.createElement('div');
         lab.className='timeLabel';
         lab.style.top = y + "px";
         lab.textContent = `${pad(abs.getHours())}:00`;
-        grid.appendChild(lab);
+        timeLabels.appendChild(lab);
       }
     }
 
     placeDepartLine(); placeNowLine();
 
     // カード再描画
-    document.querySelectorAll('.memberCol').forEach(col=> col.querySelectorAll('.card').forEach(el=>el.remove()));
+    document.querySelectorAll('.colBody').forEach(col=> col.innerHTML="");
     state.events.forEach(ev=> addCard(ev));
+
+    // 現在のスクロール位置を適用
+    applyScroll();
   }
 
   function placeDepartLine(){
     const win=getWindow();
-    const y = ((+new Date(state.departAt) - +win.start)/60000) * pxPerMin();
-    departLine.style.top = y + "px";
-    departHandle.style.top = (y - 26) + "px";
-    departHandle.textContent = "出発 " + fmtHM(new Date(state.departAt));
+    const y = ((+new Date(state.departAt||Date.now()) - +win.start)/60000) * pxPerMin();
+    departLine.style.top = (y - scrollY) + "px";
+    departHandle.style.top = (y - 26 - scrollY) + "px";
+    departHandle.textContent = "出発 " + (isNaN(state.departAt) ? "--:--" : fmtHM(new Date(state.departAt)));
   }
   function placeNowLine(){
     const win=getWindow();
     const now=new Date();
     const y = clamp(((+now - +win.start)/60000) * pxPerMin(), -1000, (+win.end - +win.start)/60000 * pxPerMin());
-    nowLine.style.top = y + "px";
+    nowLine.style.top = (y - scrollY) + "px";
   }
   setInterval(placeNowLine, 60000);
 
   function memberCol(index){ return document.querySelectorAll('.memberCol')[index]; }
+  function colBody(index){ return memberCol(index).querySelector('.colBody'); }
 
-  // ===== Card（移動／長押しリサイズ／左スワイプ削除） =====
+  // 左の時刻スクロール → 同期
+  timeScroll.addEventListener('scroll', ()=>{
+    scrollY = timeScroll.scrollTop;
+    applyScroll();
+  });
+  function applyScroll(){
+    document.querySelectorAll('.colBody').forEach(el=>{
+      el.style.transform = `translateY(${-scrollY}px)`;
+    });
+    linesLayer.style.transform = `translateY(${-scrollY}px)`;
+    timeLabels.style.transform = `translateY(${-scrollY}px)`;
+    placeDepartLine(); placeNowLine();
+  }
+
+  // ===== Card =====
   function addCard(ev){
-    const col = memberCol(ev.memberIndex);
+    const cb = colBody(ev.memberIndex);
     const win=getWindow();
     const y0 = ((ev.start - +win.start)/60000) * pxPerMin();
     const h  = ((ev.end   - ev.start)/60000) * pxPerMin();
@@ -521,14 +560,15 @@ body{
     const onDown=(e)=>{
       e.preventDefault();
       card.setPointerCapture(e.pointerId);
-      pid=e.pointerId; startY=e.clientY; origTop=parseFloat(card.style.top); origHeight=parseFloat(card.style.height);
+      pid=e.pointerId; startY=e.clientY + scrollY; /* ← スクロール同期 */
+      origTop=parseFloat(card.style.top); origHeight=parseFloat(card.style.height);
       resizing = e.target.classList.contains('resize');
       startHold(e.clientX);
     };
     const onMove=(e)=>{
-      if(pid!==e.pointerId || startY==null) return;
+      if(pid!==e.pointerId) return;
       const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+      const dy = (e.clientY + scrollY) - startY;
 
       if(!resizeMode && Math.abs(dx) > 22 && Math.abs(dy) < 16){
         cancelHold();
@@ -549,9 +589,7 @@ body{
     };
     const onUp=(e)=>{
       if(pid!==e.pointerId) return;
-      cancelHold();
-      card.releasePointerCapture(e.pointerId);
-      card.classList.remove('dragging');
+      cancelHold(); card.releasePointerCapture(e.pointerId); card.classList.remove('dragging');
 
       const ny=parseFloat(card.style.top);
       const nh=parseFloat(card.style.height);
@@ -559,7 +597,7 @@ body{
       const endMs   = startMs + (nh/pxPerMin())*60000;
       const s = state.events.find(x=>x.id===ev.id);
       if(s){ s.start=startMs; s.end=endMs; save(); }
-      pid=null; startY=null; resizing=false; leaveResizeMode();
+      pid=null; resizing=false; leaveResizeMode();
     };
     const onCancel=()=>{ cancelHold(); card.releasePointerCapture?.(pid); pid=null; leaveResizeMode(); };
 
@@ -578,16 +616,16 @@ body{
     card.addEventListener('pointerup', onUp);
     card.addEventListener('pointercancel', onCancel);
 
-    col.appendChild(card);
+    cb.appendChild(card);
   }
 
   // ===== Depart handle（10分スナップ） =====
   (()=> {
     let pid=null, startY=null, startTop=null;
-    const down=(e)=>{ e.preventDefault(); departHandle.setPointerCapture(e.pointerId); pid=e.pointerId; startY=e.clientY; startTop=parseFloat(departHandle.style.top)||0; };
+    const down=(e)=>{ e.preventDefault(); departHandle.setPointerCapture(e.pointerId); pid=e.pointerId; startY=e.clientY+scrollY; startTop=parseFloat(departHandle.style.top)||0; };
     const move=(e)=>{
       if(pid!==e.pointerId) return;
-      const dy=e.clientY-startY;
+      const dy=(e.clientY+scrollY)-startY;
       const slotPx = state.slot * pxPerMin();
       const ny=Math.round((startTop+dy)/slotPx)*slotPx;
       departHandle.style.top = ny+"px";
@@ -604,9 +642,8 @@ body{
       if (newDep !== state.departAt){
         if(confirm("時間変更を通知しますか？")){
           state.departAt = newDep; save();
-          rebuildGrid(); placeDepartLine();
-          showToast("出発時間を更新しました（通知は後でPush対応）");
-          resetAlarms();
+          rebuildGrid(); updateDepartUI(); resetAlarms();
+          showToast("出発時間を更新しました");
         }else{
           rebuildGrid();
         }
@@ -631,20 +668,32 @@ body{
 
   // ===== Depart modal =====
   openDepart.addEventListener('click', ()=>{
-    departInput.value = fmtHM(new Date(state.departAt));
+    departInput.value = isNaN(state.departAt) ? "" : fmtHM(new Date(state.departAt));
     depModal.style.display='flex';
+    setTimeout(()=>departInput.focus(), 50);
   });
   depCancel.addEventListener('click', ()=> depModal.style.display='none');
   depOk.addEventListener('click', ()=>{
-    // ここで保存（完了＝保存）
-    const next = roundTo10Min(parseHM(departInput.value, new Date(state.departAt)));
+    // 完了＝保存
+    const base = isNaN(state.departAt) ? Date.now() : state.departAt;
+    const next = roundTo10Min(departInput.value ? parseHM(departInput.value, base) : base);
     state.departAt = next; state.place = placeEl.value.trim(); save();
     depModal.style.display='none';
-    rebuildGrid(); placeDepartLine(); resetAlarms();
-    // サウンド許可（初回のみでもOK）
+    rebuildGrid(); updateDepartUI(); resetAlarms();
     try{ ensureAudio(); }catch{}
     showToast("保存しました");
   });
+
+  // ===== UI helpers =====
+  function updateDepartUI(){
+    if(isNaN(state.departAt)){
+      departText.textContent = "設定";
+      departText.className = "departUnset";
+    }else{
+      departText.textContent = fmtHM(new Date(state.departAt));
+      departText.className = "departSet";
+    }
+  }
 
   // ===== Import via URL =====
   (function importFromQuery(){
@@ -662,9 +711,9 @@ body{
   let fired = {};
   function resetAlarms(){ fired={}; updateCountdown(); }
   function updateCountdown(){
+    if(isNaN(state.departAt)){ countdownEl.textContent='残り --:--'; return; }
     const now = new Date();
     const diff = state.departAt - +now;
-    if(isNaN(diff)) return countdownEl.textContent='--:--';
     const s = Math.max(0, Math.floor(diff/1000));
     const mm = Math.floor(s/60), ss = s%60;
     countdownEl.textContent = `残り ${pad(mm)}:${pad(ss)}`;
@@ -690,7 +739,7 @@ body{
   // ===== Init =====
   function init(){
     load();
-    placeEl.value = state.place||"";
+    updateDepartUI();
     rebuildTags();
     rebuildGrid();
     updateCountdown();
