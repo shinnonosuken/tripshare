@@ -8,35 +8,35 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{
-  --bg:#f7f7fb;
-  --ink:#222;
-  --muted:#6b7280;
-  --brand:#ff7043;
-  --accent:#2563eb;
-  --grid:#e5e7eb;
-  --hour:#d1d5db;
-  --card:#3b82f6;
-  --card-ink:#fff;
-  --shadow:0 6px 18px rgba(0,0,0,.08);
-  --radius:14px;
-  --col-gap:10px;
-  --min-per-slot:10;          /* 最短タスク長さ（分） */
-  --px-per-min:3;             /* 1分あたりのpx（=3なら3時間で540px） */
+  --bg:#f7f7fb; --ink:#222; --muted:#6b7280;
+  --brand:#ff7043; --accent:#2563eb;
+  --grid:#e5e7eb; --hour:#d1d5db;
+  --card-ink:#fff; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --radius:14px; --col-gap:10px;
+  --px-per-min:3;               /* 1分=3px（お好みで 3〜5） */
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;
+  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",Arial,sans-serif;
   background:var(--bg); color:var(--ink);
 }
-.app{ max-width:1100px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 16px); }
-.header{ display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; margin-bottom:10px; }
-.title{ background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:10px 12px; line-height:1.3; }
-.title strong{font-size:20px}
-.meta{font-size:13px; color:var(--muted)}
-.controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+.app{ max-width:1100px; margin:0 auto; padding:8px 10px calc(env(safe-area-inset-bottom) + 16px); }
+
+/* ヘッダーをコンパクトに */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; margin-bottom:8px;
+}
+.title{
+  background:#fff; border-radius:12px; box-shadow:var(--shadow);
+  padding:6px 10px; line-height:1.2; min-height:40px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.title strong{font-size:16px}
+.controls{ display:flex; gap:8px; align-items:center; }
 .btn{
-  appearance:none; border:0; border-radius:10px; padding:10px 12px; font-weight:600; background:#fff;
+  appearance:none; border:0; border-radius:10px; padding:8px 10px; font-weight:600; background:#fff;
   box-shadow:var(--shadow); color:var(--ink); font-size:14px;
 }
 .btn.primary{ background:var(--brand); color:#fff }
@@ -44,36 +44,47 @@ body{
 .input{
   background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; border:1px solid transparent; font-size:14px;
 }
-.tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+
+/* タイムライン（縦スクロール可） */
 .gridwrap{
   background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
-  padding:10px; position:relative; overflow:hidden;
+  padding:8px; position:relative; overflow:auto;   /* ← スクロールできる */
+  max-height:70vh;                                  /* 画面の多くをタイムラインに充てる */
 }
 .grid{
   display:grid;
   grid-template-columns:64px repeat(4,1fr);
   gap:var(--col-gap);
-  height: calc(var(--px-per-min) * 180px); /* JSで上書き（出発−2h〜＋1h=180分） */
+  height: 540px; /* JSで上書き（180分×3px） */
   position:relative;
 }
 .timeAxis{position:relative}
 .timeAxis .tick{position:absolute; left:0; right:0; height:1px; background:var(--grid)}
 .timeAxis .hour{background:var(--hour); height:1.5px}
 .timeAxis .label{ position:absolute; left:0; top:-9px; font-size:12px; color:var(--muted); }
+
+/* メンバー列＆見出し（カラー変更可） */
 .memberCol{
   position:relative; border-left:1px dashed var(--grid); border-right:1px dashed var(--grid);
   border-radius:8px; background:linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
-  overflow:hidden;
+  overflow:visible;
 }
 .memberHead{
   position:sticky; top:0; z-index:3; background:#ffcb05; color:#1f2937; font-weight:700;
-  text-align:center; padding:6px 4px; border-radius:6px; margin-bottom:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+  text-align:center; padding:6px 6px; border-radius:6px; margin-bottom:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+  display:flex; align-items:center; justify-content:center; gap:6px;
 }
+.colorDot{
+  width:16px; height:16px; border-radius:50%; border:2px solid rgba(0,0,0,.15); display:inline-block;
+}
+.colorPicker{ display:none; }
+
+/* カード（幅最大・メンバー色で塗る） */
 .card{
   position:absolute;
-  left:4px; right:4px;                       /* 列のほぼ最大幅 */
+  left:4px; right:4px;
   min-height: calc(var(--px-per-min) * 10);  /* 最短10分 */
-  background:var(--card); color:var(--card-ink);
+  background:#3b82f6; color:var(--card-ink);
   border-radius:10px; padding:8px 10px;
   font-weight:700; font-size:16px; line-height:1.15;
   box-shadow:0 8px 14px rgba(30,64,175,.25);
@@ -84,10 +95,11 @@ body{
   font-size:clamp(12px, 3.8vw, 18px);        /* 自動縮小 */
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.card .sub{font-weight:600; opacity:.9; font-size:11px}
 .card .resize{ position:absolute; left:0; right:0; bottom:-6px; height:12px; cursor:ns-resize; }
 .card.dragging{opacity:.92; outline:2px solid rgba(255,255,255,.6)}
 .card.ghost{opacity:.6}
+
+/* 特殊ライン */
 .departLine,.nowLine{ position:absolute; left:0; right:0; height:2px; z-index:2; }
 .departLine{ background:var(--brand) }
 .nowLine{ background:var(--accent) }
@@ -95,7 +107,9 @@ body{
   position:absolute; right:6px; top:-10px; background:var(--brand); color:#fff; padding:6px 10px; border-radius:8px;
   font-weight:800; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none;
 }
-.palette{ margin-top:12px; background:#111827; color:#e5e7eb; border-radius:16px; padding:12px; box-shadow:var(--shadow); }
+
+/* タスクパレット */
+.palette{ margin-top:10px; background:#111827; color:#e5e7eb; border-radius:16px; padding:12px; box-shadow:var(--shadow); }
 .palette h3{margin:0 0 8px 0; font-size:14px; letter-spacing:.02em}
 .tags{display:flex; flex-wrap:wrap; gap:8px}
 .tag{
@@ -103,7 +117,6 @@ body{
   box-shadow:0 6px 12px rgba(59,130,246,.3); touch-action:none; user-select:none;
 }
 .tag:active{transform:scale(.98)}
-.tag.del{background:#ef4444}
 .addRow{display:flex; gap:8px; margin-top:10px}
 .small{font-size:12px; color:var(--muted)}
 .toast{
@@ -117,21 +130,10 @@ body{
 <div class="app">
   <div class="header">
     <div class="title">
-      <div><strong>出発時間の共有</strong></div>
-      <div class="meta" id="metaLine">目的地 — 出発 <span id="departText"></span></div>
-      <div class="tools">
-        <input class="input" id="place" placeholder="行き先（例：イオンモール）" style="min-width:180px">
-        <input class="input" id="purpose" placeholder="目的（例：買い物）" style="min-width:160px">
-        <input class="input" id="depart" type="time" step="600">
-        <button class="btn" id="saveBtn">保存</button>
-        <label>刻み
-          <select class="input" id="slotSelect">
-            <option value="5">5分</option>
-            <option value="10" selected>10分</option>
-            <option value="15">15分</option>
-          </select>
-        </label>
-      </div>
+      <strong>出発時間の共有</strong>
+      <input class="input" id="place" placeholder="行き先（例：イオンモール）" style="min-width:180px">
+      <input class="input" id="depart" type="time" step="600" title="出発時刻">
+      <button class="btn" id="saveBtn">保存</button>
     </div>
     <div class="controls">
       <button class="btn ghost" id="resetBtn">全削除</button>
@@ -139,15 +141,24 @@ body{
     </div>
   </div>
 
-  <div class="gridwrap">
+  <div class="gridwrap" id="gridwrap">
     <div id="grid" class="grid">
       <!-- 左：時間軸 -->
       <div class="timeAxis" id="timeAxis"></div>
-      <!-- 右：メンバー列4本 -->
-      <div class="memberCol"><div class="memberHead">のすけ</div></div>
-      <div class="memberCol"><div class="memberHead">ママ</div></div>
-      <div class="memberCol"><div class="memberHead">そう</div></div>
-      <div class="memberCol"><div class="memberHead">しゅう</div></div>
+
+      <!-- 右：メンバー列4本（名前＋カラー） -->
+      <div class="memberCol" data-index="0">
+        <div class="memberHead"><span>のすけ</span> <span class="colorDot" style="background:#3b82f6"></span><input class="colorPicker" type="color" value="#3b82f6"></div>
+      </div>
+      <div class="memberCol" data-index="1">
+        <div class="memberHead"><span>ママ</span> <span class="colorDot" style="background:#ef476f"></span><input class="colorPicker" type="color" value="#ef476f"></div>
+      </div>
+      <div class="memberCol" data-index="2">
+        <div class="memberHead"><span>そう</span> <span class="colorDot" style="background:#06d6a0"></span><input class="colorPicker" type="color" value="#06d6a0"></div>
+      </div>
+      <div class="memberCol" data-index="3">
+        <div class="memberHead"><span>しゅう</span> <span class="colorDot" style="background:#ffa600"></span><input class="colorPicker" type="color" value="#ffa600"></div>
+      </div>
 
       <!-- 特殊ライン -->
       <div class="departLine" id="departLine"></div>
@@ -162,7 +173,7 @@ body{
     <div class="addRow">
       <input class="input" id="newTask" placeholder="タスクを追加（例：化粧）" />
       <button class="btn" id="addTaskBtn">追加</button>
-      <span class="small">※ タスクを長押しで削除</span>
+      <span class="small">※ タスクを長押しで削除／ドラッグで配置</span>
     </div>
   </div>
 </div>
@@ -172,17 +183,15 @@ body{
 (() => {
   const members = ["のすけ","ママ","そう","しゅう"];
 
-  // ====== DOM ======
+  // ===== DOM =====
+  const gridwrap = document.getElementById('gridwrap');
   const grid = document.getElementById('grid');
   const timeAxis = document.getElementById('timeAxis');
   const departLine = document.getElementById('departLine');
   const departHandle = document.getElementById('departHandle');
   const nowLine = document.getElementById('nowLine');
   const placeEl = document.getElementById('place');
-  const purposeEl = document.getElementById('purpose');
   const departEl = document.getElementById('depart');
-  const departText = document.getElementById('departText');
-  const slotSelect = document.getElementById('slotSelect');
   const saveBtn = document.getElementById('saveBtn');
   const resetBtn = document.getElementById('resetBtn');
   const shareBtn = document.getElementById('shareBtn');
@@ -191,25 +200,22 @@ body{
   const newTaskEl = document.getElementById('newTask');
   const toastEl = document.getElementById('toast');
 
-  // ====== 絵文字マップ ======
-  const EMOJI = {
-    "トイレ":"🚽","化粧":"💄","着替え":"👕","持ち物":"👜",
-    "食器片付け":"🍽️","ゴミ捨て":"🗑️"
-  };
+  // ===== EMOJI =====
+  const EMOJI = { "トイレ":"🚽","化粧":"💄","着替え":"👕","持ち物":"👜","食器片付け":"🍽️","ゴミ捨て":"🗑️" };
   const withIcon = (name) => (EMOJI[name] ? `${EMOJI[name]} ${name}` : name);
 
-  // ====== State ======
-  const LS_KEY = 'tripshare_v2';
+  // ===== State =====
+  const LS_KEY = 'tripshare_v3';
   let state = {
     place: "",
-    purpose: "",
-    departAt: roundToSlot(new Date(), 10).setSeconds?.(0,0) || +roundToSlot(new Date(),10), // iOS互換
-    slot: 10, // 5/10/15
+    departAt: +roundToSlot(new Date(), 10),
+    slot: 10, // 5/10/15（UI非表示。内部は10分）
     tasksPalette: ["着替え","トイレ","持ち物","食器片付け","ゴミ捨て","化粧"],
-    events: [] // {id, memberIndex, title, start:number(ms), end:number(ms)}
+    events: [], // {id, memberIndex, title, start(ms), end(ms)}
+    memberColors: ["#3b82f6","#ef476f","#06d6a0","#ffa600"]
   };
 
-  // ====== helpers ======
+  // ===== helpers =====
   function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1600); }
   function pad(n){return (n<10?'0':'')+n}
   function fmtHM(d){ return pad(d.getHours())+":"+pad(d.getMinutes()) }
@@ -217,30 +223,44 @@ body{
     const [h,m]=hm.split(':').map(Number); const d=new Date(baseDate);
     d.setHours(h,m||0,0,0); return d;
   }
-  function roundToSlot(d, mins){
-    const base=new Date(d); base.setSeconds(0,0);
-    const q = Math.round(base.getMinutes()/mins)*mins;
-    base.setMinutes(q); return base;
-  }
+  function roundToSlot(d, mins){ const base=new Date(d); base.setSeconds(0,0); const q=Math.round(base.getMinutes()/mins)*mins; base.setMinutes(q); return base; }
   function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
   function pxPerMin(){ return Number(getComputedStyle(document.documentElement).getPropertyValue('--px-per-min')); }
 
-  // 表示窓（出発−2h .. 出発＋1h）
+  // 表示窓（出発 −2.5h .. ＋0.5h）
   function getWindow(){
     const dep=new Date(state.departAt);
-    const start=new Date(+dep - 2*60*60*1000);
-    const end  =new Date(+dep + 1*60*60*1000);
+    const start=new Date(+dep - 150*60*1000); // 2.5h
+    const end  =new Date(+dep +  30*60*1000); // 0.5h
     return {start,end,durationMs:(+end - +start)};
   }
 
-  // ====== Load/Save ======
+  // ===== Load/Save =====
   function load(){
     const s=localStorage.getItem(LS_KEY);
     if(s){ try{ state=JSON.parse(s); }catch(e){} }
   }
   function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
-  // ====== タグ（タスクパレット） ======
+  // ===== カラーピッカー連携 =====
+  function hookMemberColors(){
+    document.querySelectorAll('.memberCol').forEach((col,idx)=>{
+      const dot = col.querySelector('.colorDot');
+      const picker = col.querySelector('.colorPicker');
+      dot.addEventListener('click', ()=> picker.click());
+      picker.addEventListener('input', ()=>{
+        dot.style.background = picker.value;
+        state.memberColors[idx] = picker.value;
+        // 既存カードの色も更新
+        grid.querySelectorAll('.card[data-member="'+idx+'"]').forEach(c=> c.style.background = picker.value);
+        save();
+      });
+      // 初期反映
+      dot.style.background = state.memberColors[idx] || dot.style.background;
+    });
+  }
+
+  // ===== タスクパレット =====
   function rebuildTags(){
     tagsWrap.innerHTML="";
     state.tasksPalette.forEach(name=>{
@@ -249,13 +269,11 @@ body{
       t.textContent = withIcon(name);
       tagsWrap.appendChild(t);
 
-      // 長押し削除 と ドラッグ開始の衝突を防ぐ
+      // 長押し削除 と D&D の衝突回避
       let pressTimer=null, dragging=false, startX=0, startY=0, pid=null, ghost=null;
-
       const clearTimer=()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
-      const startLongPress=(clientX, clientY)=>{
-        startX=clientX; startY=clientY;
-        clearTimer();
+      const startLongPress=(x,y)=>{
+        startX=x; startY=y; clearTimer();
         pressTimer=setTimeout(()=>{
           if(!dragging && confirm(`「${name}」を削除しますか？`)){
             state.tasksPalette=state.tasksPalette.filter(x=>x!==name);
@@ -263,28 +281,11 @@ body{
           }
         }, 600);
       };
-      const movedEnough=(x,y)=> Math.hypot(x-startX, y-startY) > 8;
+      const moved=(x,y)=> Math.hypot(x-startX, y-startY) > 8;
 
-      const onDown=(e)=>{
-        pid=e.pointerId; dragging=false; ghost=null;
-        startLongPress(e.clientX, e.clientY);
-        t.setPointerCapture(pid);
-      };
-      const onMove=(e)=>{
-        if(pid!==e.pointerId) return;
-        if(movedEnough(e.clientX,e.clientY) && !dragging){
-          clearTimer(); dragging=true;
-          ghost = startGhostDrag(name);
-        }
-        if(dragging && ghost) ghost.move(e.clientX, e.clientY);
-      };
-      const onUp=(e)=>{
-        if(pid!==e.pointerId) return;
-        clearTimer();
-        if(dragging && ghost){ ghost.up(e.clientX, e.clientY); }
-        dragging=false; ghost=null; pid=null;
-        t.releasePointerCapture(e.pointerId);
-      };
+      const onDown=(e)=>{ pid=e.pointerId; dragging=false; ghost=null; startLongPress(e.clientX,e.clientY); t.setPointerCapture(pid); };
+      const onMove=(e)=>{ if(pid!==e.pointerId) return; if(moved(e.clientX,e.clientY) && !dragging){ clearTimer(); dragging=true; ghost=startGhostDrag(name); } if(dragging&&ghost) ghost.move(e.clientX,e.clientY); };
+      const onUp=(e)=>{ if(pid!==e.pointerId) return; clearTimer(); if(dragging&&ghost){ ghost.up(e.clientX,e.clientY); } dragging=false; ghost=null; pid=null; t.releasePointerCapture(e.pointerId); };
 
       t.addEventListener('pointerdown', onDown);
       t.addEventListener('pointermove', onMove);
@@ -298,7 +299,7 @@ body{
     ghost.className='card ghost';
     ghost.style.top='-1000px';
     ghost.style.height=(pxPerMin()*state.slot)+'px';
-    ghost.innerHTML = `<span class="label">${withIcon(title)}</span><div class="sub">ドラッグで配置</div>`;
+    ghost.innerHTML = `<span class="label">${withIcon(title)}</span>`;
     grid.appendChild(ghost);
 
     let overColIndex=-1;
@@ -312,6 +313,12 @@ body{
         const r=col.getBoundingClientRect();
         if(clientX>r.left && clientX<r.right && clientY>r.top && clientY<r.bottom){ overColIndex=idx; }
       });
+
+      // 端付近で自動スクロール（縦）
+      const gwRect = gridwrap.getBoundingClientRect();
+      const margin = 60;
+      if(clientY > gwRect.bottom - margin) gridwrap.scrollTop += 12;
+      if(clientY < gwRect.top + margin)    gridwrap.scrollTop -= 12;
     };
 
     const up=(clientX, clientY)=>{
@@ -319,20 +326,20 @@ body{
       if(overColIndex===-1) return;
       const col = memberCol(overColIndex);
       const r=col.getBoundingClientRect();
-      const y = clamp(clientY - r.top, 0, r.height);
+      const y = clamp(clientY - r.top + gridwrap.scrollTop - gridwrap.offsetTop, 0, r.height + gridwrap.scrollTop);
       const slotPx = state.slot * pxPerMin();
       const ny = Math.round(y/slotPx)*slotPx;
       const start = +getWindow().start + (ny/pxPerMin())*60000;
       const end   = start + state.slot*60000;
       const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()+Math.random());
       const ev = { id, memberIndex:overColIndex, title:title, start, end };
-      state.events.push(ev); save(); addCard(ev);  // ここで即追加（ダイアログなし）
+      state.events.push(ev); save(); addCard(ev);  // 追加（ダイアログなし）
     };
 
     return { move, up };
   }
 
-  // ====== グリッド ======
+  // ===== グリッド =====
   function rebuildGrid(){
     const win=getWindow();
     const durMin = (win.durationMs/60000)|0; // 180分
@@ -340,7 +347,7 @@ body{
 
     // 時間軸
     timeAxis.innerHTML="";
-    const step = state.slot; // 5/10/15分刻み
+    const step = state.slot; // 10分刻み
     for(let m=0; m<=durMin; m+=step){
       const y = m*pxPerMin();
       const tick=document.createElement('div');
@@ -350,20 +357,18 @@ body{
       tick.style.top = y + "px";
       timeAxis.appendChild(tick);
       if(isHour){
-        const lab=document.createElement('div');
-        lab.className='label';
-        lab.style.top = (y) + "px";
+        const lab=document.createElement('div'); lab.className='label';
+        lab.style.top = y + "px";
         lab.textContent = `${pad(abs.getHours())}:${pad(abs.getMinutes())}`;
         timeAxis.appendChild(lab);
       }
     }
 
     // ライン
-    placeDepartLine();
-    placeNowLine();
+    placeDepartLine(); placeNowLine();
 
     // 既存カード再描画
-    document.querySelectorAll('.memberCol').forEach((col)=> col.querySelectorAll('.card').forEach(el=>el.remove()));
+    document.querySelectorAll('.memberCol').forEach(col=> col.querySelectorAll('.card').forEach(el=>el.remove()));
     state.events.forEach(ev=> addCard(ev));
   }
 
@@ -373,8 +378,6 @@ body{
     departLine.style.top = y + "px";
     departHandle.style.top = (y - 26) + "px";
     departHandle.textContent = "出発 " + fmtHM(new Date(state.departAt));
-    const dep = new Date(state.departAt);
-    departText.textContent = `${fmtHM(dep)}（−2h〜＋1h表示）`;
   }
   function placeNowLine(){
     const win=getWindow();
@@ -384,10 +387,10 @@ body{
   }
   setInterval(placeNowLine, 60000); // 1分ごと
 
-  // ====== メンバー列 ======
+  // ===== メンバー列 =====
   function memberCol(index){ return document.querySelectorAll('.memberCol')[index]; }
 
-  // ====== カード生成 ======
+  // ===== カード生成 =====
   function addCard(ev){
     const col = memberCol(ev.memberIndex);
     const win=getWindow();
@@ -398,12 +401,10 @@ body{
     card.className='card';
     card.style.top = y0 + "px";
     card.style.height = Math.max(h, pxPerMin()*10) + "px";
+    card.style.background = state.memberColors[ev.memberIndex] || '#3b82f6';
     card.dataset.id = ev.id;
-    card.innerHTML = `
-      <span class="label">${withIcon(ev.title)}</span>
-      <div class="sub">${members[ev.memberIndex]}</div>
-      <div class="resize"></div>
-    `;
+    card.dataset.member = ev.memberIndex;
+    card.innerHTML = `<span class="label">${withIcon(ev.title)}</span><div class="resize"></div>`;
 
     // ドラッグ＆リサイズ
     let dragStartY=null, origTop=null, pointerId=null, resizing=false, origHeight=null;
@@ -426,6 +427,13 @@ body{
         nh = Math.max(slotPx, Math.round(nh/slotPx)*slotPx);
         card.style.height = nh + "px";
       }
+
+      // 端で自動スクロール
+      const gwRect = gridwrap.getBoundingClientRect();
+      const cy = e.clientY;
+      const margin = 60;
+      if(cy > gwRect.bottom - margin) gridwrap.scrollTop += 10;
+      if(cy < gwRect.top + margin)    gridwrap.scrollTop -= 10;
     };
     const onPointerUp=(e)=>{
       if(pointerId!==e.pointerId) return;
@@ -455,7 +463,7 @@ body{
     col.appendChild(card);
   }
 
-  // ====== 出発ハンドル（上下ドラッグで変更） ======
+  // ===== 出発ハンドル =====
   (()=> {
     let pid=null, startY=null, startTop=null;
     const down=(e)=>{ e.preventDefault(); departHandle.setPointerCapture(e.pointerId); pid=e.pointerId; startY=e.clientY; startTop=parseFloat(departHandle.style.top)||0; };
@@ -471,7 +479,6 @@ body{
       if(pid!==e.pointerId) return;
       departHandle.releasePointerCapture(e.pointerId);
       pid=null;
-      // 新しい出発時刻へ
       const win=getWindow();
       const y=parseFloat(departLine.style.top);
       const newDep = +win.start + (y/pxPerMin())*60000;
@@ -490,16 +497,12 @@ body{
     departHandle.addEventListener('pointerup', up);
   })();
 
-  // ====== Header inputs ======
+  // ===== Header =====
   saveBtn.addEventListener('click', ()=>{
     state.place = placeEl.value.trim();
-    state.purpose = purposeEl.value.trim();
     const hm = departEl.value || fmtHM(new Date(state.departAt));
     state.departAt = +parseHM(hm, new Date(state.departAt));
     save(); rebuildGrid(); showToast("保存しました");
-  });
-  slotSelect.addEventListener('change', ()=>{
-    state.slot = Number(slotSelect.value)||10; save(); rebuildGrid();
   });
   resetBtn.addEventListener('click', ()=>{
     if(confirm('全てのカードと設定を削除しますか？')){
@@ -512,7 +515,7 @@ body{
     navigator.clipboard.writeText(url).then(()=> showToast("共有リンクをコピーしました"));
   });
 
-  // ====== Import via URL (state=...) ======
+  // ===== Import via URL =====
   (function importFromQuery(){
     const p=new URLSearchParams(location.search).get('state');
     if(p){
@@ -523,16 +526,15 @@ body{
     }
   })();
 
-  // ====== Init ======
+  // ===== Init =====
   function init(){
     load();
     placeEl.value = state.place||"";
-    purposeEl.value = state.purpose||"";
     const dep = new Date(state.departAt);
     departEl.value = pad(dep.getHours())+":"+pad(dep.getMinutes());
-    slotSelect.value = String(state.slot||10);
     rebuildTags();
     rebuildGrid();
+    hookMemberColors();
   }
   init();
 })();
