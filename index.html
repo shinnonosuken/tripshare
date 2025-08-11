@@ -13,9 +13,8 @@
   --grid:#e5e7eb; --major:#cdd3da;
   --card-ink:#fff; --shadow:0 6px 18px rgba(0,0,0,.08);
   --radius:14px; --col-gap:10px;
-
-  --px-per-min:2.6; /* 1分=2.6px → 150分=390px */
-  /* メンバー固定色 */
+  --px-per-min:2.6;          /* 1分=2.6px → 150分=約390px */
+  /* 列カラー */
   --col0:#e6f0ff; --card0:#3b82f6; /* のすけ */
   --col1:#ffe7ee; --card1:#ef476f; /* ママ   */
   --col2:#e7fbf5; --card2:#06d6a0; /* そう   */
@@ -24,11 +23,11 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; height:100svh; overflow:hidden; /* ページ全体はスクロールしない */
+  margin:0; height:100svh; overflow:hidden;               /* 画面全体はスクロールしない */
   padding-top:calc(env(safe-area-inset-top) + 6px);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",Arial,sans-serif;
   background:var(--bg); color:var(--ink);
-  -webkit-user-select:none; user-select:none;
+  -webkit-user-select:none; user-select:none;             /* テキスト選択禁止（D&DはJSで扱う） */
 }
 .app{
   height:100%; max-width:1100px; margin:0 auto;
@@ -36,7 +35,7 @@ body{
   display:flex; flex-direction:column; gap:8px;
 }
 
-/* ヘッダー（シンプル） */
+/* ヘッダー */
 .header{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .title{
   background:#fff; border-radius:12px; box-shadow:var(--shadow);
@@ -51,8 +50,8 @@ body{
 .countdown{font-weight:800; color:#111; font-variant-numeric:tabular-nums;}
 .controls{ display:flex; gap:8px; align-items:center; }
 .btn{
-  appearance:none; border:0; border-radius:10px; padding:8px 10px; font-weight:600; background:#fff;
-  box-shadow:var(--shadow); color:#222; font-size:14px;
+  appearance:none; border:0; border-radius:10px; padding:8px 12px; font-weight:600; background:#fff;
+  box-shadow:var(--shadow); color:#222; font-size:14px; white-space:nowrap;
 }
 .btn.primary{ background:var(--brand); color:#fff }
 .btn.ghost{ background:transparent; border:1px solid var(--grid) }
@@ -60,7 +59,7 @@ body{
   background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; border:1px solid transparent; font-size:14px;
 }
 
-/* タイムライン（ページの残りすべて） */
+/* タイムライン */
 .gridwrap{
   position:relative; flex:1; min-height:260px;
   background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
@@ -69,27 +68,31 @@ body{
 .grid{
   position:relative;
   display:grid;
-  grid-template-columns:56px repeat(4,1fr); /* 左：時間列やや広め、メンバー列も確保 */
+  grid-template-columns:56px repeat(4,1fr);   /* 左：時刻列＋メンバー列 */
   gap:var(--col-gap);
-  height:390px; /* 150分×2.6px（JSで上書き） */
+  height:390px;                                /* JSで上書き */
 }
 
-/* 左の時刻エリアは“専用スクロール” */
+/* 左の時刻列：ここだけ縦スクロール可 */
 .timeAxis{ position:relative; z-index:4; background:#fff; overflow:hidden; }
-.timeScroll{ position:absolute; inset:0; overflow:auto; }
-.timeSpacer{ width:100%; height:100%; } /* スクロール量のためのスペーサ */
-.timeLabels{ position:absolute; inset:0; pointer-events:none; } /* スクロールに同期させるラベル群 */
+.timeScroll{
+  position:absolute; inset:0;
+  overflow:auto; -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;                             /* ← ここは縦スクロールOK */
+}
+.timeSpacer{ width:100%; height:100%; }          /* スクロール量のためのスペーサ */
+.timeLabels{ position:absolute; inset:0; pointer-events:none; }
 .timeLabel{
   position:absolute; left:4px; font-size:12px; color:#6b7280; font-weight:700;
   background:#fff; padding:0 2px; border-radius:4px; transform:translateY(-9px);
 }
 
-/* 全面ライン（横線を全列へ延長） */
-.linesLayer{ position:absolute; inset:0; z-index:1; }
+/* 横ライン（全カラムへ延長） */
+.linesLayer{ position:absolute; inset:0; z-index:1; pointer-events:none; }
 .rowLine{ position:absolute; left:0; right:0; height:1px; background:var(--grid); }
 .rowLine.major{ background:var(--major); height:1.5px; } /* 00/30分は太め */
 
-/* メンバー列（中身だけスクロール同期し、列自体はスクロールさせない） */
+/* メンバー列（列自体はスクロール不可） */
 .memberCol{
   position:relative; border-left:1px dashed var(--grid); border-right:1px dashed var(--grid);
   border-radius:8px; overflow:visible; min-width:0;
@@ -103,7 +106,10 @@ body{
   color:#1f2937; font-weight:900; text-align:center; padding:6px 6px; border-radius:6px; margin:6px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.colBody{ position:absolute; left:0; right:0; top:0; height:100%; will-change:transform; } /* ← ここをtranslateYで同期 */
+.colBody{
+  position:absolute; left:0; right:0; top:0; height:100%;
+  will-change:transform; touch-action:none;          /* ← 縦スクロール不可。D&DはOK */
+}
 
 /* カード（アイコンのみ） */
 .card{
@@ -121,16 +127,16 @@ body{
 .card.dragging{opacity:.92; outline:2px solid rgba(255,255,255,.6)}
 .card.ghost{opacity:.6}
 .card{ transition:transform .15s ease; }
-.card .delBtn{ display:none; }                 /* ← デフォルト非表示 */
+.card .delBtn{ display:none; }
 .card.swipeLeft{ transform:translateX(-60px); }
-.card.swipeLeft .delBtn{ display:block; }      /* ← スワイプ時だけ表示 */
+.card.swipeLeft .delBtn{ display:block; }
 .card .delBtn{
   position:absolute; top:50%; right:-54px; transform:translateY(-50%);
   background:#ef4444; color:#fff; border:none; border-radius:10px; padding:8px 10px; font-weight:800;
   box-shadow:0 6px 12px rgba(239,68,68,.35);
 }
 
-/* 現在・出発ライン（最前面） */
+/* 現在・出発ライン */
 .departLine,.nowLine{ position:absolute; left:0; right:0; height:2px; z-index:5; }
 .departLine{ background:var(--brand) }
 .nowLine{ background:var(--accent) }
@@ -139,21 +145,20 @@ body{
   font-weight:900; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none; z-index:6;
 }
 
-/* タスクパレット：2行ぶんの高さで横スクロール */
-.palette{
-  background:#111827; color:#e5e7eb; border-radius:16px; padding:10px; box-shadow:var(--shadow);
-}
+/* タスクパレット：2行固定＋横スクロール、追加ボタンは一行で横長 */
+.palette{ background:#111827; color:#e5e7eb; border-radius:16px; padding:10px; box-shadow:var(--shadow); }
 .tags{
   display:grid; grid-auto-flow:column; grid-auto-rows:40px; grid-template-rows:repeat(2,40px);
-  gap:8px 8px; overflow-x:auto; overflow-y:hidden; white-space:nowrap; height:calc(40px*2 + 8px);
-  padding-bottom:2px;
+  gap:8px 8px; overflow-x:auto; overflow-y:hidden; height:calc(40px*2 + 8px);
+  padding-bottom:2px; -webkit-overflow-scrolling:touch;
 }
 .tag{
   background:#3b82f6; color:#fff; padding:8px 10px; border-radius:999px; font-weight:700; font-size:14px;
   box-shadow:0 6px 12px rgba(59,130,246,.3); touch-action:none; user-select:none; white-space:nowrap;
 }
 .tag:active{transform:scale(.98)}
-.toolbar{ display:flex; gap:8px; margin-top:8px; align-items:center; }
+.toolbar{ display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:nowrap; }
+#addTaskBtn{ flex:0 0 auto; padding:10px 18px; white-space:nowrap; }  /* ← 1行確定 */
 .small{font-size:12px; color:#cbd5e1}
 
 /* トースト／アラーム／モーダル */
@@ -190,36 +195,36 @@ body{
       <input class="input place" id="place" placeholder="行き先（例：イオンモール）">
       <div class="departWrap">
         <span class="departLabel">出発</span>
-        <button class="btn" id="openDepart">
+        <button class="btn" id="openDepart" type="button">
           <span id="departText" class="departUnset">設定</span>
         </button>
         <span class="countdown" id="countdown">--:--</span>
       </div>
     </div>
     <div class="controls">
-      <button class="btn ghost" id="resetBtn">全削除</button>
-      <button class="btn primary" id="shareBtn">共有リンク</button>
+      <button class="btn ghost" id="resetBtn" type="button">全削除</button>
+      <button class="btn primary" id="shareBtn" type="button">共有リンク</button>
     </div>
   </div>
 
   <div class="gridwrap" id="gridwrap">
     <div id="grid" class="grid">
-      <!-- 左：時刻エリア（専用スクロール） -->
+      <!-- 左：時刻エリア（縦スクロール可） -->
       <div class="timeAxis">
         <div class="timeScroll" id="timeScroll"><div class="timeSpacer" id="timeSpacer"></div></div>
         <div class="timeLabels" id="timeLabels"></div>
       </div>
 
-      <!-- メンバー列（列自体はスクロールしない。中身をtranslateで同期） -->
+      <!-- メンバー列（スクロール不可／中身だけ同期） -->
       <div class="memberCol" data-index="0"><div class="memberHead">のすけ</div><div class="colBody"></div></div>
       <div class="memberCol" data-index="1"><div class="memberHead">ママ</div><div class="colBody"></div></div>
       <div class="memberCol" data-index="2"><div class="memberHead">そう</div><div class="colBody"></div></div>
       <div class="memberCol" data-index="3"><div class="memberHead">しゅう</div><div class="colBody"></div></div>
 
-      <!-- 全面ライン（scroll同期） -->
+      <!-- 全面ライン（横） -->
       <div class="linesLayer" id="linesLayer"></div>
 
-      <!-- 特殊ライン -->
+      <!-- 出発・現在ライン -->
       <div class="departLine" id="departLine"></div>
       <div class="nowLine" id="nowLine"></div>
       <div class="departHandle" id="departHandle">出発</div>
@@ -229,7 +234,7 @@ body{
   <div class="palette" id="palette">
     <div class="tags" id="tags"></div>
     <div class="toolbar">
-      <button class="btn" id="addTaskBtn" type="button">＋ 追加</button>
+      <button class="btn" id="addTaskBtn" type="button">＋ タスクを追加</button>
       <span class="small">※ 長押しでパレット削除／タイムラインは左スワイプで削除</span>
     </div>
   </div>
@@ -238,7 +243,7 @@ body{
 <!-- トースト -->
 <div class="toast" id="toast"></div>
 
-<!-- 出発時間の設定モーダル -->
+<!-- 出発時間の設定モーダル（1タップで開く） -->
 <div class="modal" id="depModal">
   <div class="box">
     <div style="font-weight:900;margin-bottom:6px;">出発時間の設定</div>
@@ -247,8 +252,8 @@ body{
       <span class="small">※10分単位</span>
     </div>
     <div class="row">
-      <button class="ok" id="depOk">完了</button>
-      <button class="close" id="depCancel">キャンセル</button>
+      <button class="ok" id="depOk" type="button">完了</button>
+      <button class="close" id="depCancel" type="button">キャンセル</button>
     </div>
   </div>
 </div>
@@ -259,8 +264,8 @@ body{
     <div style="font-weight:900;margin-bottom:6px;">タスク名を入力</div>
     <div class="row"><input class="input" id="taskName" placeholder="例：水筒"></div>
     <div class="row">
-      <button class="ok" id="taskOk">保存</button>
-      <button class="close" id="taskCancel">キャンセル</button>
+      <button class="ok" id="taskOk" type="button">保存</button>
+      <button class="close" id="taskCancel" type="button">キャンセル</button>
     </div>
   </div>
 </div>
@@ -270,7 +275,7 @@ body{
   <div class="panel">
     <div class="msg" id="alarmMsg">10分前</div>
     <div class="sub">出発の準備は大丈夫？</div>
-    <button class="ok" id="alarmOK">OK</button>
+    <button class="ok" id="alarmOK" type="button">OK</button>
   </div>
 </div>
 
@@ -317,7 +322,7 @@ body{
   const withIcon = (name) => `${iconOf(name)} ${name}`;
 
   // ===== State =====
-  const LS_KEYS = ['tripshare_v7','tripshare_v6'];
+  const LS_KEYS = ['tripshare_v8','tripshare_v7'];
   let state = {
     place: "",
     departAt: NaN,                // 未設定
@@ -327,7 +332,7 @@ body{
   };
   const CARD_COLORS = ['#3b82f6','#ef476f','#06d6a0','#ffa600'];
 
-  // Scroll offset（左の時刻スクロール量を保つ）
+  // 左の時刻スクロール量
   let scrollY = 0;
 
   // ===== Audio for alarm =====
@@ -495,7 +500,7 @@ body{
     document.querySelectorAll('.colBody').forEach(col=> col.innerHTML="");
     state.events.forEach(ev=> addCard(ev));
 
-    // 現在のスクロール位置を適用
+    // 現在のスクロール位置反映
     applyScroll();
   }
 
@@ -560,7 +565,7 @@ body{
     const onDown=(e)=>{
       e.preventDefault();
       card.setPointerCapture(e.pointerId);
-      pid=e.pointerId; startY=e.clientY + scrollY; /* ← スクロール同期 */
+      pid=e.pointerId; startY=e.clientY + scrollY;
       origTop=parseFloat(card.style.top); origHeight=parseFloat(card.style.height);
       resizing = e.target.classList.contains('resize');
       startHold(e.clientX);
@@ -656,8 +661,9 @@ body{
 
   // ===== Header buttons =====
   resetBtn.addEventListener('click', ()=>{
-    if(confirm('全てのカードと設定を削除しますか？')){
-      state.events=[]; save(); rebuildGrid();
+    if(confirm('すべてリセットしますか？（出発時刻も未設定に戻ります）')){
+      state.events=[]; state.departAt=NaN; state.place=""; save();
+      placeEl.value=""; updateDepartUI(); rebuildGrid();
     }
   });
   shareBtn.addEventListener('click', ()=>{
@@ -666,15 +672,15 @@ body{
     navigator.clipboard.writeText(url).then(()=> showToast("共有リンクをコピーしました"));
   });
 
-  // ===== Depart modal =====
-  openDepart.addEventListener('click', ()=>{
+  // ===== Depart modal（1回タップで開く） =====
+  openDepart.addEventListener('click', (e)=>{
+    e.preventDefault();
     departInput.value = isNaN(state.departAt) ? "" : fmtHM(new Date(state.departAt));
     depModal.style.display='flex';
-    setTimeout(()=>departInput.focus(), 50);
-  });
+    setTimeout(()=>departInput.focus(), 30);
+  }, {passive:false});
   depCancel.addEventListener('click', ()=> depModal.style.display='none');
   depOk.addEventListener('click', ()=>{
-    // 完了＝保存
     const base = isNaN(state.departAt) ? Date.now() : state.departAt;
     const next = roundTo10Min(departInput.value ? parseHM(departInput.value, base) : base);
     state.departAt = next; state.place = placeEl.value.trim(); save();
@@ -694,17 +700,6 @@ body{
       departText.className = "departSet";
     }
   }
-
-  // ===== Import via URL =====
-  (function importFromQuery(){
-    const p=new URLSearchParams(location.search).get('state');
-    if(p){
-      try{
-        const obj=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(p)))));
-        state=obj; save(); history.replaceState({},"",location.pathname);
-      }catch(e){}
-    }
-  })();
 
   // ===== Countdown & Alarms =====
   const ALARM_MINUTES = [30,20,10,5];
@@ -735,6 +730,17 @@ body{
     alarmEl.style.display='none';
     stopBeep();
   });
+
+  // ===== Import via URL =====
+  (function importFromQuery(){
+    const p=new URLSearchParams(location.search).get('state');
+    if(p){
+      try{
+        const obj=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(p)))));
+        state=obj; save(); history.replaceState({},"",location.pathname);
+      }catch(e){}
+    }
+  })();
 
   // ===== Init =====
   function init(){
