@@ -2,605 +2,544 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>出発時間の共有</title>
-<meta name="theme-color" content="#0f172a" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="#" id="appleIcon">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-  :root{
-    --bg:#0b1220;       /* 背景(濃紺) */
-    --card:#111827;     /* カード(グレー) */
-    --muted:#94a3b8;    /* テキスト副 */
-    --fg:#e5e7eb;       /* テキスト主 */
-    --acc:#22d3ee;      /* アクセント */
-    --ok:#22c55e;       /* 成功 */
-    --warn:#f59e0b;     /* 注意 */
-    --bad:#ef4444;      /* 却下 */
-    --shadow: 0 10px 30px rgba(0,0,0,.35);
-    --radius: 16px;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; background:linear-gradient(180deg,#0b1220, #0c1322 40%, #0b1220 100%);
-    color:var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", sans-serif;
-  }
-  .app{max-width:840px; margin:0 auto; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));}
-  header{
-    position:sticky; top:0; z-index:3; backdrop-filter:saturate(140%) blur(10px);
-    background:rgba(11,18,32,.7); border-bottom:1px solid rgba(255,255,255,.06);
-  }
-  .topbar{display:flex; align-items:center; gap:10px; padding:12px 12px;}
-  .title{font-weight:800; letter-spacing:.02em; font-size:18px}
-  .spacer{flex:1}
-  button{appearance:none; border:none; background:var(--acc); color:#001014; font-weight:700; padding:10px 14px; border-radius:12px; box-shadow:var(--shadow); cursor:pointer}
-  button.ghost{background:transparent; color:var(--fg); box-shadow:none; border:1px solid rgba(255,255,255,.12)}
-  button.warn{background:var(--warn); color:#1d1000}
-  button.ok{background:var(--ok); color:#001402}
-  button.bad{background:var(--bad); color:#2b0000}
-  .row{display:flex; gap:12px; flex-wrap:wrap}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow)}
-  .section-title{font-size:14px; color:var(--muted); margin:4px 0 10px}
-  .trip{display:grid; grid-template-columns: 1fr; gap:10px}
-  .trip .field{display:grid; grid-template-columns: 96px 1fr; gap:10px; align-items:center}
-  input, select, textarea{
-    width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.02); color:var(--fg); outline:none
-  }
-  input[type="time"]{letter-spacing:.04em}
-  .members{display:grid; grid-template-columns:1fr; gap:12px}
-  @media(min-width:680px){ .members{grid-template-columns:1fr 1fr} }
-  .member-card{display:grid; gap:8px}
-  .member-head{display:flex; align-items:center; gap:10px}
-  .avatar{width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-weight:900; color:#001014}
-  .progress{height:8px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
-  .progress > i{display:block; height:100%; background:var(--acc); width:0%}
-  .tasks{display:grid; gap:8px}
-  .task{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.03); border:1px dashed rgba(255,255,255,.08)}
-  .task input{width:auto}
-  .muted{color:var(--muted)}
-  .pill{padding:4px 8px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); font-size:12px}
-  .toolbar{display:flex; gap:8px; flex-wrap:wrap}
-  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:10; background:#0b1220; border:1px solid rgba(255,255,255,.12); padding:12px 14px; border-radius:12px; box-shadow:var(--shadow)}
-  .banner{position:sticky; top:56px; z-index:2; margin:10px 0; padding:10px 12px; border-radius:12px; background:rgba(245,158,11,.15); border:1px solid rgba(245,158,11,.45);}
-  .footer{margin:18px 0 0; font-size:12px; color:var(--muted)}
-  dialog{border:none; border-radius:16px; padding:0; background:#0f172a; color:var(--fg); box-shadow:var(--shadow); width:min(720px, 92vw)}
-  .sheet{padding:16px}
-  .sheet h3{margin:0 0 10px}
-  .sheet .actions{display:flex; gap:8px; justify-content:flex-end; padding:10px 16px 16px}
-  .kpi{display:flex; gap:10px; flex-wrap:wrap}
-  .kpi .box{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); padding:10px 12px; border-radius:12px}
-  .link{color:var(--acc); text-decoration:underline; cursor:pointer}
-  .cols{display:grid; gap:10px}
-  @media(min-width:640px){.cols{grid-template-columns:1fr 1fr}}
+:root{
+  --bg:#f7f7fb;
+  --ink:#222;
+  --muted:#6b7280;
+  --brand:#ff7043;
+  --accent:#2563eb;
+  --grid:#e5e7eb;
+  --hour:#d1d5db;
+  --card:#3b82f6;
+  --card-ink:#fff;
+  --shadow:0 6px 18px rgba(0,0,0,.08);
+  --radius:14px;
+  --col-gap:10px;
+  --min-per-slot:10;   /* 10分刻み（UIで切替可能にしてもOK） */
+  --px-per-min:3;      /* ズーム係数（1分=3px → 3時間=540px） */
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--ink);
+}
+.app{
+  max-width:1100px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 16px);
+}
+.header{
+  display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; margin-bottom:10px;
+}
+.title{
+  background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:10px 12px; line-height:1.3;
+}
+.title strong{font-size:20px}
+.meta{font-size:13px; color:var(--muted)}
+.controls{
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;
+}
+.btn{
+  appearance:none; border:0; border-radius:10px; padding:10px 12px; font-weight:600; background:#fff;
+  box-shadow:var(--shadow); color:var(--ink); font-size:14px;
+}
+.btn.primary{ background:var(--brand); color:#fff }
+.btn.ghost{ background:transparent; border:1px solid var(--grid) }
+.input{
+  background:#fff; box-shadow:var(--shadow); border-radius:10px; padding:8px 10px; border:1px solid transparent; font-size:14px;
+}
+.gridwrap{
+  background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:10px; position:relative; overflow:hidden;
+}
+.grid{
+  display:grid;
+  grid-template-columns: 64px repeat(4, 1fr);
+  gap:var(--col-gap);
+  height: calc(var(--px-per-min) * 180px); /* ダミー、JSで上書き */
+  position:relative;
+}
+.timeAxis{position:relative}
+.timeAxis .tick{position:absolute; left:0; right:0; height:1px; background:var(--grid)}
+.timeAxis .hour{background:var(--hour); height:1.5px}
+.timeAxis .label{
+  position:absolute; left:0; top:-9px; font-size:12px; color:var(--muted);
+}
+.memberCol{
+  position:relative; border-left:1px dashed var(--grid); border-right:1px dashed var(--grid);
+  border-radius:8px; background:linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+  overflow:hidden;
+}
+.memberHead{
+  position:sticky; top:0; z-index:3; background:#ffcb05; color:#1f2937; font-weight:700;
+  text-align:center; padding:6px 4px; border-radius:6px; margin-bottom:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.card{
+  position:absolute; left:6px; right:6px; min-height: calc(var(--px-per-min) * 10); /* 最短10分 */
+  background:var(--card); color:var(--card-ink); border-radius:10px; padding:8px 10px; font-weight:700; font-size:14px;
+  box-shadow:0 8px 14px rgba(30,64,175,.25); touch-action:none; user-select:none;
+}
+.card .sub{font-weight:600; opacity:.9; font-size:11px}
+.card .resize{
+  position:absolute; left:0; right:0; bottom:-6px; height:12px; cursor:ns-resize;
+}
+.card.dragging{opacity:.9; outline:2px solid rgba(255,255,255,.6)}
+.card.ghost{opacity:.6}
+.departLine,.nowLine{
+  position:absolute; left:0; right:0; height:2px; z-index:2;
+}
+.departLine{ background:var(--brand) }
+.nowLine{ background:var(--accent) }
+.departHandle{
+  position:absolute; right:6px; top:-10px; background:var(--brand); color:#fff; padding:6px 10px; border-radius:8px;
+  font-weight:800; font-size:13px; box-shadow:var(--shadow); touch-action:none; user-select:none;
+}
+.palette{
+  margin-top:12px; background:#111827; color:#e5e7eb; border-radius:16px; padding:12px; box-shadow:var(--shadow);
+}
+.palette h3{margin:0 0 8px 0; font-size:14px; letter-spacing:.02em}
+.tags{display:flex; flex-wrap:wrap; gap:8px}
+.tag{
+  background:#3b82f6; color:#fff; padding:8px 10px; border-radius:999px; font-weight:700; font-size:14px;
+  box-shadow:0 6px 12px rgba(59,130,246,.3); touch-action:none; user-select:none;
+}
+.tag:active{transform:scale(.98)}
+.tag.del{background:#ef4444}
+.addRow{display:flex; gap:8px; margin-top:10px}
+.toast{
+  position:fixed; left:50%; bottom:calc(12px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+  background:#111827; color:#fff; padding:10px 14px; border-radius:999px; box-shadow:var(--shadow); font-weight:700; z-index:50; opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.toast.show{opacity:1}
+.small{font-size:12px; color:var(--muted)}
+.tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.tools label{font-size:12px; color:var(--muted)}
 </style>
 </head>
 <body>
-<header>
-  <div class="topbar">
-    <div class="title">出発時間の共有</div>
-    <span class="pill" id="installHint" hidden>ホーム画面に追加可</span>
-    <div class="spacer"></div>
-    <button class="ghost" id="shareBtn" title="共有">共有</button>
-    <button id="editTripBtn" title="設定">設定</button>
-  </div>
-</header>
 <div class="app">
-  <div id="changeBanner" class="banner" hidden></div>
+  <div class="header">
+    <div class="title">
+      <div><strong>出発時間の共有</strong></div>
+      <div class="meta" id="metaLine">目的地 — 出発 <span id="departText"></span></div>
+      <div class="tools">
+        <input class="input" id="place" placeholder="行き先（例：イオンモール）" style="min-width:180px">
+        <input class="input" id="purpose" placeholder="目的（例：買い物）" style="min-width:160px">
+        <input class="input" id="depart" type="time" step="600">
+        <button class="btn" id="saveBtn">保存</button>
+        <label>刻み
+          <select class="input" id="slotSelect">
+            <option value="5">5分</option>
+            <option value="10" selected>10分</option>
+            <option value="15">15分</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn ghost" id="resetBtn">全削除</button>
+      <button class="btn primary" id="shareBtn">共有リンク</button>
+    </div>
+  </div>
 
-  <section class="card">
-    <div class="section-title">おでかけ情報</div>
-    <div class="trip" id="tripInfo">
-      <div class="field"><div class="muted">行く場所</div><div id="placeView">—</div></div>
-      <div class="field"><div class="muted">目的</div><div id="purposeView">—</div></div>
-      <div class="field"><div class="muted">出発時間</div><div><span id="timeView">—</span> <span class="pill" id="etaLeft">—</span></div></div>
-    </div>
-    <div class="kpi" style="margin-top:10px">
-      <div class="box">全体進捗：<b id="overallPct">0%</b></div>
-      <div class="box">メンバー：<b id="memberCount">0</b>/4</div>
-    </div>
-    <div class="toolbar" style="margin-top:12px">
-      <button class="warn" id="requestChangeBtn">時間変更を提案</button>
-      <button class="ghost" id="notifyBtn">通知テスト</button>
-      <button class="ghost" id="addToHomeBtn" hidden>ホーム画面に追加</button>
-    </div>
-  </section>
+  <div class="gridwrap">
+    <div id="grid" class="grid">
+      <!-- 左：時間軸 -->
+      <div class="timeAxis" id="timeAxis"></div>
+      <!-- 右：メンバー列4本 -->
+      <div class="memberCol"><div class="memberHead">のすけ</div></div>
+      <div class="memberCol"><div class="memberHead">ママ</div></div>
+      <div class="memberCol"><div class="memberHead">そう</div></div>
+      <div class="memberCol"><div class="memberHead">しゅう</div></div>
 
-  <section class="card" style="margin-top:12px">
-    <div class="section-title">メンバーの準備状況（最大4人）</div>
-    <div class="members" id="members"></div>
-    <div class="toolbar" style="margin-top:10px">
-      <button class="ghost" id="addMemberBtn">＋ メンバー追加</button>
-      <button class="ghost" id="editTasksBtn">共通チェック項目を編集</button>
+      <div class="departLine" id="departLine"></div>
+      <div class="nowLine" id="nowLine"></div>
+      <div class="departHandle" id="departHandle">出発</div>
     </div>
-  </section>
+  </div>
 
-  <div class="footer">保存はこの端末のローカル（オフライン可）。家族に共有するには右上「共有」からリンクを送ってください（読み込み時点の内容を含みます）。</div>
+  <div class="palette" id="palette">
+    <h3>【タスク】</h3>
+    <div class="tags" id="tags"></div>
+    <div class="addRow">
+      <input class="input" id="newTask" placeholder="タスクを追加（例：化粧）" />
+      <button class="btn" id="addTaskBtn">追加</button>
+      <span class="small">※ タスクを長押しで削除</span>
+    </div>
+  </div>
 </div>
-
-<!-- ダイアログ: おでかけ設定 -->
-<dialog id="tripDialog">
-  <form method="dialog" class="sheet">
-    <h3>おでかけ設定</h3>
-    <div class="trip">
-      <div class="field"><label class="muted">行く場所</label><input id="placeInput" placeholder="例：〇〇公園"></div>
-      <div class="field"><label class="muted">目的</label><input id="purposeInput" placeholder="例：ピクニック"></div>
-      <div class="field"><label class="muted">出発時間</label><input id="timeInput" type="time"></div>
-    </div>
-    <div class="actions">
-      <button class="ghost" value="cancel">キャンセル</button>
-      <button value="ok">保存</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ダイアログ: 時間変更提案 -->
-<dialog id="changeDialog">
-  <form method="dialog" class="sheet">
-    <h3>時間変更を提案</h3>
-    <div class="trip">
-      <div class="field"><label class="muted">現在の出発</label><input id="currentTime" disabled></div>
-      <div class="field"><label class="muted">提案する時間</label><input id="proposedTime" type="time"></div>
-      <div class="field"><label class="muted">理由（任意）</label><input id="proposedReason" placeholder="例：子どもの準備が押しそう" ></div>
-    </div>
-    <div class="actions">
-      <button class="ghost" value="cancel">キャンセル</button>
-      <button class="warn" value="ok">提案を送る</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ダイアログ: メンバー編集/追加 -->
-<dialog id="memberDialog">
-  <form method="dialog" class="sheet">
-    <h3>メンバー</h3>
-    <div class="trip">
-      <div class="field"><label class="muted">名前</label><input id="memberName"></div>
-      <div class="field"><label class="muted">カラー</label>
-        <select id="memberColor">
-          <option value="#22d3ee">アクア</option>
-          <option value="#60a5fa">ブルー</option>
-          <option value="#34d399">グリーン</option>
-          <option value="#f472b6">ピンク</option>
-          <option value="#f59e0b">オレンジ</option>
-          <option value="#a78bfa">パープル</option>
-        </select>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="ghost" value="cancel">やめる</button>
-      <button value="ok">保存</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ダイアログ: 共通タスク編集 -->
-<dialog id="tasksDialog">
-  <form method="dialog" class="sheet">
-    <h3>共通チェック項目（全メンバー初期値）</h3>
-    <div class="section-title">1行につき1項目。空行は無視。</div>
-    <textarea id="tasksText" rows="8" style="width:100%"></textarea>
-    <div class="actions">
-      <button class="ghost" value="cancel">キャンセル</button>
-      <button value="ok">反映</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ダイアログ: メンバー個別タスク -->
-<dialog id="memberTasksDialog">
-  <form method="dialog" class="sheet">
-    <h3 id="mtTitle">個別タスク</h3>
-    <div class="cols">
-      <div>
-        <div class="section-title">共通項目（表示するものにチェック）</div>
-        <div id="commonList"></div>
-        <div class="toolbar" style="margin-top:8px">
-          <button class="ghost" id="mtAllOn" type="button">すべて表示</button>
-          <button class="ghost" id="mtAllOff" type="button">すべて非表示</button>
-        </div>
-      </div>
-      <div>
-        <div class="section-title">このメンバーだけの項目（1行1項目）</div>
-        <textarea id="customText" rows="8" style="width:100%"></textarea>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="ghost" value="cancel">キャンセル</button>
-      <button value="ok">保存</button>
-    </div>
-  </form>
-</dialog>
-
-<div id="toast" class="toast" hidden>通知</div>
+<div class="toast" id="toast"></div>
 
 <script>
 (() => {
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
-  const state = loadState();
-  const MAX_MEMBERS = 4;
+  const members = ["のすけ","ママ","そう","しゅう"];
+  const grid = document.getElementById('grid');
+  const timeAxis = document.getElementById('timeAxis');
+  const departLine = document.getElementById('departLine');
+  const departHandle = document.getElementById('departHandle');
+  const nowLine = document.getElementById('nowLine');
+  const placeEl = document.getElementById('place');
+  const purposeEl = document.getElementById('purpose');
+  const departEl = document.getElementById('depart');
+  const departText = document.getElementById('departText');
+  const slotSelect = document.getElementById('slotSelect');
+  const saveBtn = document.getElementById('saveBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const tagsWrap = document.getElementById('tags');
+  const addTaskBtn = document.getElementById('addTaskBtn');
+  const newTaskEl = document.getElementById('newTask');
+  const toastEl = document.getElementById('toast');
 
-  // --- UI refs ---
-  const placeView = $('#placeView');
-  const purposeView = $('#purposeView');
-  const timeView = $('#timeView');
-  const etaLeft = $('#etaLeft');
-  const membersEl = $('#members');
-  const memberCount = $('#memberCount');
-  const overallPct = $('#overallPct');
-  const changeBanner = $('#changeBanner');
-  const toast = $('#toast');
+  // ----- State -----
+  const LS_KEY = 'tripshare_v2';
+  let state = {
+    place: "",
+    purpose: "",
+    departAt: roundToSlot(new Date(), 10).setSeconds(0,0), // 初期=今丸め
+    slot: 10, // 5/10/15
+    tasksPalette: ["着替え","トイレ","持ち物","食器片付け","ゴミ捨て","化粧"],
+    events: [] // {id, memberIndex, title, start:number(ms), end:number(ms)}
+  };
 
-  // --- Event bindings ---
-  $('#editTripBtn').addEventListener('click', openTripDialog);
-  $('#requestChangeBtn').addEventListener('click', openChangeDialog);
-  $('#notifyBtn').addEventListener('click', () => notify('テスト通知', '通知の動作を確認しました。'));
-  $('#addMemberBtn').addEventListener('click', () => openMemberDialog());
-  $('#editTasksBtn').addEventListener('click', openTasksDialog);
-  $('#shareBtn').addEventListener('click', shareLink);
-
-  // iOSホーム追加ヒント
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  if(!isStandalone) $('#installHint').hidden = false;
-
-  // Load
-  renderAll();
-  tickETA();
-  setInterval(tickETA, 1000 * 30);
-
-  // --- State ---
-  function loadState(){
-    try{
-      const u = new URL(location.href);
-      const encoded = u.searchParams.get('state');
-      if(encoded){
-        const json = atob(decodeURIComponent(encoded));
-        const obj = JSON.parse(json);
-        localStorage.setItem('tripshare_state', JSON.stringify(obj));
-        u.searchParams.delete('state'); history.replaceState(null, '', u.toString());
-      }
-    }catch(e){ console.warn('state import failed', e); }
-    const defaultTasks = ['着替え', '荷物チェック', 'トイレ', '水筒/飲み物', '施錠・電気確認'];
-    const saved = JSON.parse(localStorage.getItem('tripshare_state') || 'null');
-    return saved || {
-      trip: { place:'', purpose:'', time:'' },
-      tasks: defaultTasks,
-      members: [] ,
-      change: null // {proposedTime, reason, approvals:[], rejections:[]}
-    };
+  // helpers
+  function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1600); }
+  function pad(n){return (n<10?'0':'')+n}
+  function fmtHM(d){ return pad(d.getHours())+":"+pad(d.getMinutes()) }
+  function parseHM(hm, baseDate=new Date()){
+    const [h,m]=hm.split(':').map(Number); const d=new Date(baseDate);
+    d.setHours(h,m||0,0,0); return d;
   }
-  function save(){ localStorage.setItem('tripshare_state', JSON.stringify(state)); }
+  function roundToSlot(d, mins){
+    const ms=+d; const base=new Date(d); base.setSeconds(0,0);
+    const q = Math.round(base.getMinutes()/mins)*mins;
+    base.setMinutes(q); return base;
+  }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
 
-  // --- Render ---
-  function renderAll(){
-    placeView.textContent = state.trip.place || '—';
-    purposeView.textContent = state.trip.purpose || '—';
-    timeView.textContent = state.trip.time || '—';
-
-    membersEl.innerHTML = '';
-    state.members.forEach((m, idx) => membersEl.appendChild(renderMember(m, idx)) );
-    memberCount.textContent = state.members.length;
-
-    // Overall progress（各メンバーの表示中タスクのみ集計）
-    const all = state.members.flatMap(m => visibleTasks(m));
-    const pct = all.length ? Math.round(all.filter(t=>t.done).length / all.length * 100) : 0;
-    overallPct.textContent = pct + '%';
-
-    renderBanner();
+  // window range (dep-2h .. dep+1h)
+  function getWindow(){
+    const dep=new Date(state.departAt);
+    const start=new Date(+dep - 2*60*60*1000);
+    const end  =new Date(+dep + 1*60*60*1000);
+    return {start,end,durationMs:(+end - +start)};
   }
 
-  function visibleTasks(m){
-    return (m.tasks || []).filter(t => t.enabled !== false); // enabled true or undefined
-  }
+  function minutesPerPixel(){ return 1/Number(getComputedStyle(document.documentElement).getPropertyValue('--px-per-min')); }
+  function pxPerMin(){ return Number(getComputedStyle(document.documentElement).getPropertyValue('--px-per-min')); }
 
-  function ensureMemberTasksShape(m){
-    // 共通タスクをベースに、既存のdone/enabledを保持。カスタムはそのまま残す。
-    const map = new Map((m.tasks||[]).map(t=>[t.label, t]));
-    const merged = state.tasks.map(label => {
-      const old = map.get(label);
-      return old ? {label, done: !!old.done, enabled: (old.enabled!==false)} : {label, done:false, enabled:true};
+  // ----- Load/Save -----
+  function load(){
+    const s=localStorage.getItem(LS_KEY);
+    if(s){ try{ state=JSON.parse(s); }catch(e){} }
+  }
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+  // ----- Build tags (palette) -----
+  function rebuildTags(){
+    tagsWrap.innerHTML="";
+    state.tasksPalette.forEach(name=>{
+      const t=document.createElement('div');
+      t.className='tag'; t.textContent=name;
+      t.addEventListener('touchstart', e=>startDragFromTag(e, name), {passive:false});
+      t.addEventListener('mousedown', e=>startDragFromTag(e, name));
+      // long press delete
+      let pressTimer=null;
+      const startPress=()=>{ pressTimer=setTimeout(()=>{ if(confirm(`「${name}」を削除しますか？`)){ state.tasksPalette=state.tasksPalette.filter(x=>x!==name); rebuildTags(); save(); } },600); };
+      const cancelPress=()=>{ clearTimeout(pressTimer); };
+      t.addEventListener('touchstart', startPress, {passive:true});
+      t.addEventListener('touchend', cancelPress);
+      t.addEventListener('mousedown', startPress);
+      t.addEventListener('mouseup', cancelPress);
+      tagsWrap.appendChild(t);
     });
-    // 既存のカスタム（共通に存在しない）を付加
-    (m.tasks||[]).forEach(t=>{ if(!state.tasks.includes(t.label)) merged.push({label:t.label, done:!!t.done, enabled:(t.enabled!==false)}); });
-    m.tasks = merged;
   }
 
-  function renderMember(m, idx){
-    ensureMemberTasksShape(m);
-    const card = document.createElement('div');
-    card.className = 'member-card card';
-    const initials = (m.name || '—').slice(0,2);
-    const pct = memberPct(m);
-    card.innerHTML = `
-      <div class="member-head">
-        <div class="avatar" style="background:${m.color}">${initials}</div>
-        <input class="name-input" value="${m.name}" placeholder="メンバー名" />
-        <div class="spacer"></div>
-        <button class="ghost small" data-act="mt">個別タスク</button>
-        <button class="ghost small" data-act="edit">編集</button>
-        <button class="ghost small" data-act="del">削除</button>
-      </div>
-      <div class="progress"><i style="width:${pct}%"></i></div>
-      <div class="tasks">
-        ${visibleTasks(m).map((t,i)=>{
-          const checked = t.done ? 'checked' : '';
-          return `<label class="task"><input type="checkbox" data-task="${i}" ${checked}> ${t.label}</label>`;
-        }).join('')}
-      </div>
-      <div class="toolbar">
-        <button class="ghost small" data-act="reset">未完了に戻す</button>
-      </div>
-    `;
-    // Bindings
-    card.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
-      cb.addEventListener('change', e =>{
-        const i = Number(e.target.getAttribute('data-task'));
-        const vt = visibleTasks(m);
-        const realLabel = vt[i].label;
-        const realIndex = m.tasks.findIndex(x=>x.label===realLabel);
-        m.tasks[realIndex].done = e.target.checked;
-        save(); renderAll();
-      })
-    });
-    card.querySelector('.name-input').addEventListener('change', e=>{ m.name = e.target.value.trim(); save(); renderAll(); });
-    card.querySelector('[data-act="edit"]').addEventListener('click', ()=> openMemberDialog(m));
-    card.querySelector('[data-act="del"]').addEventListener('click', ()=>{ if(confirm('このメンバーを削除しますか？')){ state.members.splice(idx,1); save(); renderAll(); }});
-    card.querySelector('[data-act="reset"]').addEventListener('click', ()=>{ visibleTasks(m).forEach(t=>t.done=false); save(); renderAll();});
-    card.querySelector('[data-act="mt"]').addEventListener('click', ()=> openMemberTasksDialog(m));
-    return card;
-  }
-  function memberPct(m){
-    const vt = visibleTasks(m);
-    const done = vt.filter(t=>t.done).length; const total = vt.length || 1; return Math.round(done/total*100);
-  }
+  addTaskBtn.addEventListener('click', ()=>{
+    const v=newTaskEl.value.trim(); if(!v) return;
+    if(!state.tasksPalette.includes(v)){ state.tasksPalette.push(v); rebuildTags(); save(); }
+    newTaskEl.value="";
+  });
 
-  function renderBanner(){
-    const c = state.change; if(!c){ changeBanner.hidden = true; return; }
-    const approvals = c.approvals?.length || 0; const rejections = c.rejections?.length || 0;
-    changeBanner.hidden = false;
-    changeBanner.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-        <b>出発時間の変更提案</b> → <span class="pill">${state.trip.time || '—'} ▶ ${c.proposedTime}</span>
-        ${c.reason ? `<span class="pill">理由：${escapeHtml(c.reason)}</span>`:''}
-        <span class="spacer"></span>
-        <span class="muted">賛成 ${approvals}・反対 ${rejections}</span>
-        <button class="ok" id="approveBtn">賛成</button>
-        <button class="bad" id="rejectBtn">反対</button>
-        <button class="ghost" id="dismissBtn">提案を取り下げ</button>
-      </div>
-    `;
-    $('#approveBtn').onclick = ()=> vote(true);
-    $('#rejectBtn').onclick = ()=> vote(false);
-    $('#dismissBtn').onclick = ()=> { if(confirm('取り下げますか？')){ state.change = null; save(); renderAll(); } };
-  }
+  // ----- Timeline grid -----
+  function rebuildGrid(){
+    const win=getWindow();
+    const durMin = (win.durationMs/60000)|0; // 180分
+    const gridHeight = durMin * pxPerMin();
+    grid.style.height = gridHeight + "px";
 
-  // --- Dialogs ---
-  function openTripDialog(){
-    $('#placeInput').value = state.trip.place || '';
-    $('#purposeInput').value = state.trip.purpose || '';
-    $('#timeInput').value = state.trip.time || '';
-    $('#tripDialog').showModal();
-    $('#tripDialog').addEventListener('close', e=>{
-      if($('#tripDialog').returnValue === 'ok'){
-        state.trip.place = $('#placeInput').value.trim();
-        state.trip.purpose = $('#purposeInput').value.trim();
-        state.trip.time = $('#timeInput').value;
-        save(); renderAll();
+    // clear axis ticks
+    timeAxis.innerHTML="";
+    const step = state.slot; // 分刻み（5/10/15）
+    for(let m=0; m<=durMin; m+=step){
+      const y = m*pxPerMin();
+      const tick=document.createElement('div');
+      tick.className='tick' + (((m + (win.start.getMinutes()%60))%60===0)?' hour':'');
+      tick.style.top = y + "px";
+      timeAxis.appendChild(tick);
+      // hour label
+      const abs = new Date(+win.start + m*60000);
+      if(abs.getMinutes()===0){
+        const lab=document.createElement('div');
+        lab.className='label';
+        lab.style.top = (y) + "px";
+        lab.textContent = `${pad(abs.getHours())}:${pad(abs.getMinutes())}`;
+        timeAxis.appendChild(lab);
       }
-    }, {once:true});
-  }
-
-  function openChangeDialog(){
-    if(!state.trip.time){ toastMsg('まず出発時間を設定してください'); return; }
-    $('#currentTime').value = state.trip.time;
-    $('#proposedTime').value = state.trip.time;
-    $('#proposedReason').value = '';
-    $('#changeDialog').showModal();
-    $('#changeDialog').addEventListener('close', e=>{
-      if($('#changeDialog').returnValue === 'ok'){
-        const t = $('#proposedTime').value; if(!t || t===state.trip.time){ toastMsg('別の時間を選んでください'); return; }
-        state.change = { proposedTime: t, reason: $('#proposedReason').value.trim(), approvals:[], rejections:[] };
-        save(); renderAll();
-        notify('出発時間の変更提案', `${formatTime(state.trip.time)} → ${formatTime(t)}${state.change.reason? '｜'+state.change.reason: ''}`);
-        vibrate();
-      }
-    }, {once:true});
-  }
-
-  function openMemberDialog(existing){
-    const isEdit = !!existing;
-    $('#memberName').value = existing?.name || '';
-    $('#memberColor').value = existing?.color || '#22d3ee';
-    $('#memberDialog').showModal();
-    $('#memberDialog').addEventListener('close', e=>{
-      if($('#memberDialog').returnValue === 'ok'){
-        const name = $('#memberName').value.trim() || 'メンバー';
-        const color = $('#memberColor').value;
-        if(isEdit){ existing.name = name; existing.color = color; }
-        else{
-          if(state.members.length >= MAX_MEMBERS){ toastMsg('メンバーは最大4人まで'); return; }
-          state.members.push({name, color, tasks: state.tasks.map(t=>({label:t, done:false, enabled:true}))});
-        }
-        save(); renderAll();
-      }
-    }, {once:true});
-  }
-
-  function openTasksDialog(){
-    $('#tasksText').value = state.tasks.join('\n');
-    $('#tasksDialog').showModal();
-    $('#tasksDialog').addEventListener('close', ()=>{
-      if($('#tasksDialog').returnValue==='ok'){
-        const lines = $('#tasksText').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-        state.tasks = lines.length? lines : state.tasks;
-        // 各メンバーのタスク配列を再構築（既存の完了/可視状態を保持、カスタムは維持）
-        state.members.forEach(m=> ensureMemberTasksShape(m));
-        save(); renderAll();
-      }
-    }, {once:true});
-  }
-
-  // --- Member specific tasks ---
-  let mtTarget = null;
-  function openMemberTasksDialog(member){
-    mtTarget = member;
-    ensureMemberTasksShape(mtTarget);
-    $('#mtTitle').textContent = `${member.name || 'メンバー'} の個別タスク`;
-
-    // 共通一覧（チェックで表示/非表示）
-    const commonList = $('#commonList');
-    commonList.innerHTML = state.tasks.map(label=>{
-      const t = (member.tasks||[]).find(x=>x.label===label);
-      const enabled = t ? (t.enabled!==false) : true;
-      return `<label class="task"><input type="checkbox" data-role="cmn" data-label="${escapeHtml(label)}" ${enabled?'checked':''}> ${label}</label>`;
-    }).join('');
-
-    // カスタムは共通にないもの
-    const customs = (member.tasks||[]).filter(t=> !state.tasks.includes(t.label)).map(t=>t.label);
-    $('#customText').value = customs.join('\n');
-
-    $('#memberTasksDialog').showModal();
-
-    // バッチ操作
-    $('#mtAllOn').onclick = ()=> { $$('#commonList input[type="checkbox"]').forEach(cb=> cb.checked=true); };
-    $('#mtAllOff').onclick = ()=> { $$('#commonList input[type="checkbox"]').forEach(cb=> cb.checked=false); };
-
-    $('#memberTasksDialog').addEventListener('close', ()=>{
-      if($('#memberTasksDialog').returnValue==='ok'){
-        // 共通の可視/非表示を反映
-        $$('#commonList input[type="checkbox"]').forEach(cb=>{
-          const label = cb.getAttribute('data-label');
-          const idx = member.tasks.findIndex(x=>x.label===label);
-          if(idx>=0){ member.tasks[idx].enabled = cb.checked; }
-          else { member.tasks.push({label, done:false, enabled:cb.checked}); }
-        });
-        // カスタムを反映（既存のdoneは保持）
-        const newCustoms = $('#customText').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-        const isCommon = new Set(state.tasks);
-        // 既存のカスタムのdoneを写経
-        const curMap = new Map(member.tasks.filter(t=>!isCommon.has(t.label)).map(t=>[t.label, t.done]));
-        // まず共通にないタスクを削除
-        member.tasks = member.tasks.filter(t=> isCommon.has(t.label) );
-        // 新しいカスタムを追加
-        newCustoms.forEach(label=>{ member.tasks.push({label, done: curMap.get(label)||false, enabled:true}); });
-
-        save(); renderAll();
-      }
-    }, {once:true});
-  }
-
-  // --- Voting ---
-  function vote(approve){
-    if(!state.change) return;
-    const myId = deviceId();
-    const arrA = state.change.approvals; const arrR = state.change.rejections;
-    state.change.approvals = arrA.filter(id=>id!==myId);
-    state.change.rejections = arrR.filter(id=>id!==myId);
-    (approve ? state.change.approvals : state.change.rejections).push(myId);
-    save();
-    renderAll();
-    // 過半数で確定
-    const votersNeeded = Math.floor((state.members.length||1)/2)+1;
-    if(state.change.approvals.length >= votersNeeded){
-      const old = state.trip.time; state.trip.time = state.change.proposedTime; state.change = null; save(); renderAll();
-      notify('出発時間が変更されました', `${formatTime(old)} → ${formatTime(state.trip.time)}`);
-      vibrate();
     }
+
+    // reposition special lines
+    placeDepartLine();
+    placeNowLine();
+
+    // rebuild event cards
+    document.querySelectorAll('.memberCol').forEach((col,i)=>{
+      // 既存カード削除（ヘッダ除く）
+      col.querySelectorAll('.card').forEach(el=>el.remove());
+    });
+    state.events.forEach(ev=> addCard(ev));
   }
 
-  // --- ETA ---
-  function tickETA(){
-    if(!state.trip.time){ etaLeft.textContent='—'; return; }
-    const [hh, mm] = state.trip.time.split(':').map(Number);
-    const now = new Date(); const target = new Date();
-    target.setHours(hh, mm, 0, 0);
-    const diff = Math.round((target - now)/60000); // minutes
-    let txt = '';
-    if(diff > 0){
-      const h = Math.floor(diff/60), m = diff%60; txt = `出発まで ${h? h+ '時間':''}${m}分`; etaLeft.style.background='rgba(34,211,238,.12)';
-    }else if(diff === 0){ txt = '出発時刻です'; etaLeft.style.background='rgba(34,197,94,.18)'; }
-    else { txt = `予定を${Math.abs(diff)}分過ぎています`; etaLeft.style.background='rgba(239,68,68,.18)'; }
-    etaLeft.textContent = txt;
+  function placeDepartLine(){
+    const win=getWindow();
+    const y = ((+new Date(state.departAt) - +win.start)/60000) * pxPerMin();
+    departLine.style.top = y + "px";
+    departHandle.style.top = (y - 26) + "px";
+    departHandle.textContent = "出発 " + fmtHM(new Date(state.departAt));
+    // meta
+    const dep = new Date(state.departAt);
+    departText.textContent = `${fmtHM(dep)}（−2h〜＋1h表示）`;
   }
 
-  // --- Share ---
-  async function shareLink(){
-    try{
-      const url = new URL(location.href);
-      const encoded = encodeURIComponent(btoa(JSON.stringify(state)));
-      url.searchParams.set('state', encoded);
-      const link = url.toString();
-      if(navigator.share){ await navigator.share({ title:'出発時間の共有', text:'おでかけ計画を共有します', url: link }); }
-      else { await navigator.clipboard.writeText(link); toastMsg('共有リンクをクリップボードにコピーしました'); }
-    }catch(e){ toastMsg('共有に失敗しました'); console.error(e); }
+  function placeNowLine(){
+    const win=getWindow();
+    const now=new Date();
+    const y = clamp(((+now - +win.start)/60000) * pxPerMin(), -1000, (+win.end - +win.start)/60000 * pxPerMin());
+    nowLine.style.top = y + "px";
+  }
+  setInterval(placeNowLine, 60000); // 1分更新
+
+  // ----- Cards -----
+  function addCard(ev){
+    const col = document.querySelectorAll('.memberCol')[ev.memberIndex+1-1]; // grid の1列目は時間軸
   }
 
-  // --- Notifications & UX ---
-  function toastMsg(msg){ toast.textContent = msg; toast.hidden = false; setTimeout(()=>toast.hidden = true, 2400); }
-  function notify(title, body){
-    try{
-      if('Notification' in window){
-        if(Notification.permission === 'granted'){ new Notification(title, { body }); }
-        else if(Notification.permission !== 'denied'){
-          Notification.requestPermission().then(p=>{ if(p==='granted') new Notification(title, { body }); else toastMsg(title + '：' + body); });
-        } else { toastMsg(title + '：' + body); }
-      } else { toastMsg(title + '：' + body); }
-    }catch{ toastMsg(title + '：' + body); }
+  // 修正：grid内の列インデックス対応
+  function memberCol(index){ // 0..3
+    return document.querySelectorAll('.memberCol')[index];
   }
-  function vibrate(){ if(navigator.vibrate) navigator.vibrate([20,40,20]); }
 
-  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function addCard(ev){
+    const col = memberCol(ev.memberIndex);
+    const win=getWindow();
+    const y0 = ((ev.start - +win.start)/60000) * pxPerMin();
+    const h  = ((ev.end   - ev.start)/60000) * pxPerMin();
 
-  // --- PWA minimal (manifest + SW from Blob) ---
-  (function setupPWA(){
-    try{
-      const iconSize = 192;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = iconSize;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,iconSize,iconSize);
-      ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(iconSize/2, iconSize/2, 72, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 88px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Go', iconSize/2, iconSize/2+4);
-      canvas.toBlob(blob=>{
-        const iconURL = URL.createObjectURL(blob);
-        $('#appleIcon').href = iconURL;
-        const manifest = {
-          name: '出発時間の共有', short_name: '出発共有', start_url: '.', display: 'standalone', background_color:'#0f172a', theme_color:'#0f172a',
-          icons: [{src: iconURL, sizes: iconSize+'x'+iconSize, type: 'image/png'}]
-        };
-        const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-        const mURL = URL.createObjectURL(mBlob);
-        const link = document.createElement('link'); link.rel='manifest'; link.href = mURL; document.head.appendChild(link);
+    const card=document.createElement('div');
+    card.className='card';
+    card.style.top = y0 + "px";
+    card.style.height = Math.max(h, pxPerMin()*10) + "px";
+    card.dataset.id = ev.id;
+    card.innerHTML = `<div>${ev.title}</div><div class="sub">${members[ev.memberIndex]}</div><div class="resize"></div>`;
 
-        if('serviceWorker' in navigator){
-          const swCode = `self.addEventListener('install', e=>{ e.waitUntil(caches.open('tripshare-v1').then(c=>c.addAll(['./']))); self.skipWaiting(); });
-            self.addEventListener('activate', e=> self.clients.claim());
-            self.addEventListener('fetch', e=>{ e.respondWith(caches.match(e.request).then(r=> r || fetch(e.request))); });`;
-          const swBlob = new Blob([swCode], {type:'text/javascript'});
-          const swURL = URL.createObjectURL(swBlob);
-          navigator.serviceWorker.register(swURL).catch(()=>{});
-        }
+    // drag move
+    let dragStartY=null, origTop=null, pointerId=null, resizing=false, origHeight=null;
+    const onPointerDown=(e)=>{
+      e.preventDefault(); card.setPointerCapture(e.pointerId);
+      pointerId=e.pointerId; dragStartY=e.clientY; origTop=parseFloat(card.style.top); origHeight=parseFloat(card.style.height);
+      resizing = e.target.classList.contains('resize');
+      card.classList.add('dragging');
+    };
+    const onPointerMove=(e)=>{
+      if(pointerId!==e.pointerId) return;
+      if(dragStartY==null) return;
+      const dy=e.clientY - dragStartY;
+      if(!resizing){
+        let ny=origTop + dy;
+        // snap to slot
+        const slot = state.slot * pxPerMin();
+        ny = Math.round(ny/slot)*slot;
+        card.style.top = ny + "px";
+      }else{
+        let nh = origHeight + dy;
+        const slot = state.slot * pxPerMin();
+        nh = Math.max(slot, Math.round(nh/slot)*slot);
+        card.style.height = nh + "px";
+      }
+    };
+    const onPointerUp=(e)=>{
+      if(pointerId!==e.pointerId) return;
+      card.releasePointerCapture(e.pointerId);
+      card.classList.remove('dragging');
+      // write back to state
+      const ny=parseFloat(card.style.top);
+      const nh=parseFloat(card.style.height);
+      const startMs = +getWindow().start + (ny/pxPerMin())*60000;
+      const endMs   = startMs + (nh/pxPerMin())*60000;
+      const s = state.events.find(x=>x.id===ev.id);
+      if(s){ s.start=startMs; s.end=endMs; save(); }
+      dragStartY=null; pointerId=null; resizing=false;
+    };
+    card.addEventListener('pointerdown', onPointerDown);
+    card.addEventListener('pointermove', onPointerMove);
+    card.addEventListener('pointerup', onPointerUp);
+
+    // long press delete
+    let pressTimer=null;
+    const startPress=()=>{ pressTimer=setTimeout(()=>{ if(confirm('このカードを削除しますか？')){ state.events=state.events.filter(x=>x.id!==ev.id); card.remove(); save(); } },600); };
+    const cancelPress=()=>clearTimeout(pressTimer);
+    card.addEventListener('pointerdown', startPress);
+    card.addEventListener('pointerup', cancelPress);
+    card.addEventListener('pointercancel', cancelPress);
+
+    col.appendChild(card);
+  }
+
+  // drag from tag to column -> create card
+  function startDragFromTag(e, title){
+    e.preventDefault();
+    const ghost=document.createElement('div');
+    ghost.className='card ghost';
+    ghost.style.top='-1000px'; ghost.style.height=(pxPerMin()*10)+'px';
+    ghost.innerHTML = `<div>${title}</div><div class="sub">ドラッグで配置</div>`;
+    grid.appendChild(ghost);
+
+    let active=false, overColIndex=null;
+
+    const onMove=(clientX, clientY)=>{
+      const rect=grid.getBoundingClientRect();
+      ghost.style.left = (clientX - rect.left - 80) + 'px';
+      ghost.style.top  = (clientY - rect.top - 24) + 'px';
+
+      // detect which member column
+      overColIndex = -1;
+      document.querySelectorAll('.memberCol').forEach((col,idx)=>{
+        const r=col.getBoundingClientRect();
+        if(clientX>r.left && clientX<r.right && clientY>r.top && clientY<r.bottom){ overColIndex=idx; }
       });
-    }catch(e){ console.warn('PWA setup skipped', e); }
+      active=true;
+    };
+
+    const onUp=(clientX, clientY)=>{
+      document.removeEventListener('mousemove', mouseMove);
+      document.removeEventListener('mouseup', mouseUp);
+      window.removeEventListener('touchmove', touchMove);
+      window.removeEventListener('touchend', touchEnd);
+      ghost.remove();
+
+      if(!active || overColIndex===-1) return;
+      const col = memberCol(overColIndex);
+      const r=col.getBoundingClientRect();
+      const y=clamp(clientY - r.top, 0, r.height);
+      // snap
+      const slotPx = state.slot * pxPerMin();
+      const ny = Math.round(y/slotPx)*slotPx;
+
+      const start = +getWindow().start + (ny/pxPerMin())*60000;
+      const end   = start + state.slot*60000; // デフォ1スロット
+      const ev = { id:crypto.randomUUID(), memberIndex:overColIndex, title, start, end };
+      state.events.push(ev); save(); addCard(ev);
+    };
+
+    const mouseMove=(e)=>onMove(e.clientX,e.clientY);
+    const mouseUp  =(e)=>onUp(e.clientX,e.clientY);
+    const touchMove=(e)=>{ const t=e.touches[0]; onMove(t.clientX,t.clientY); };
+    const touchEnd =(e)=>{ const t=(e.changedTouches||e.touches)[0]; if(!t){ ghost.remove(); return; } onUp(t.clientX,t.clientY); };
+
+    document.addEventListener('mousemove', mouseMove);
+    document.addEventListener('mouseup', mouseUp);
+    window.addEventListener('touchmove', touchMove, {passive:false});
+    window.addEventListener('touchend', touchEnd, {passive:false});
+  }
+
+  // ----- Depart handle drag -----
+  (()=> {
+    let pid=null, startY=null, startTop=null;
+    const down=(e)=>{ e.preventDefault(); departHandle.setPointerCapture(e.pointerId); pid=e.pointerId; startY=e.clientY; startTop=parseFloat(departHandle.style.top)||0; };
+    const move=(e)=>{
+      if(pid!==e.pointerId) return;
+      const dy=e.clientY-startY;
+      const slotPx = state.slot * pxPerMin();
+      const ny=Math.round((startTop+dy)/slotPx)*slotPx;
+      departHandle.style.top = ny+"px";
+      departLine.style.top = (ny+26)+"px";
+    };
+    const up=(e)=>{
+      if(pid!==e.pointerId) return;
+      departHandle.releasePointerCapture(e.pointerId);
+      pid=null;
+      // compute new depart time
+      const win=getWindow();
+      const y=parseFloat(departLine.style.top);
+      const newDep = +win.start + (y/pxPerMin())*60000;
+      if (newDep !== state.departAt){
+        if(confirm("時間変更を通知しますか？")){
+          state.departAt = newDep; save();
+          rebuildGrid(); placeDepartLine();
+          showToast("出発時間を更新しました（通知は後でPush対応）");
+        }else{
+          rebuildGrid(); // 戻す
+        }
+      }
+    };
+    departHandle.addEventListener('pointerdown', down);
+    departHandle.addEventListener('pointermove', move);
+    departHandle.addEventListener('pointerup', up);
   })();
 
-  // 初期データ（デモ用に1回だけメンバーを入れる）
-  if(!state.__seeded){
-    state.members = [
-      {name:'ママ', color:'#f472b6', tasks: state.tasks.map(t=>({label:t, done:false, enabled:true})).concat([{label:'化粧', done:false, enabled:true}])},
-      {name:'パパ', color:'#60a5fa', tasks: state.tasks.map(t=>({label:t, done:false, enabled:true}))}
-    ];
-    state.__seeded = true; save(); renderAll();
-  }
+  // ----- Header inputs -----
+  saveBtn.addEventListener('click', ()=>{
+    state.place = placeEl.value.trim();
+    state.purpose = purposeEl.value.trim();
+    const hm = departEl.value || fmtHM(new Date(state.departAt));
+    state.departAt = +parseHM(hm, new Date(state.departAt));
+    save(); rebuildGrid(); showToast("保存しました");
+  });
+  slotSelect.addEventListener('change', ()=>{
+    state.slot = Number(slotSelect.value)||10; save(); rebuildGrid();
+  });
+  resetBtn.addEventListener('click', ()=>{
+    if(confirm('全てのカードと設定を削除しますか？')){
+      state.events=[]; save(); rebuildGrid();
+    }
+  });
+  shareBtn.addEventListener('click', ()=>{
+    const data = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state)))));
+    const url = location.origin+location.pathname+'?state='+data;
+    navigator.clipboard.writeText(url).then(()=> showToast("共有リンクをコピーしました"));
+  });
 
-  function formatTime(t){ return t ? t.split(':').slice(0,2).join(':') : '—'; }
-  function deviceId(){
-    let id = localStorage.getItem('tripshare_device');
-    if(!id){ id = 'd'+Math.random().toString(36).slice(2); localStorage.setItem('tripshare_device', id); }
-    return id;
+  // ----- Import via URL -----
+  (function importFromQuery(){
+    const p=new URLSearchParams(location.search).get('state');
+    if(p){
+      try{
+        const obj=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(p)))));
+        // 既存に上書き
+        state=obj; save(); history.replaceState({},"",location.pathname);
+      }catch(e){}
+    }
+  })();
+
+  // ----- Init -----
+  function init(){
+    load();
+    // initial members already fixed
+    placeEl.value = state.place||"";
+    purposeEl.value = state.purpose||"";
+    const dep = new Date(state.departAt);
+    departEl.value = pad(dep.getHours())+":"+pad(dep.getMinutes());
+    slotSelect.value = String(state.slot||10);
+    rebuildTags();
+    rebuildGrid();
   }
+  init();
+
 })();
 </script>
 </body>
