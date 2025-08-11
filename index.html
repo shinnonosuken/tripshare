@@ -13,17 +13,17 @@
   --grid:#e5e7eb; --major:#cdd3da;
   --card-ink:#fff; --shadow:0 6px 18px rgba(0,0,0,.08);
   --radius:14px; --col-gap:10px;
-  --px-per-min:2.6;          /* JSで動的に上書き（視野+200px になるよう調整） */
+  --px-per-min:2.6;          /* JSで動的に上書き（可視高+200px以上になるよう調整） */
   /* 列カラー */
-  --col0:#e6f0ff; --card0:#3b82f6;
-  --col1:#ffe7ee; --card1:#ef476f;
-  --col2:#e7fbf5; --card2:#06d6a0;
-  --col3:#fff3df; --card3:#ffa600;
+  --col0:#e6f0ff; --card0:#3b82f6; /* のすけ */
+  --col1:#ffe7ee; --card1:#ef476f; /* ママ   */
+  --col2:#e7fbf5; --card2:#06d6a0; /* そう   */
+  --col3:#fff3df; --card3:#ffa600; /* しゅう */
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; height:100svh; overflow:hidden;
+  margin:0; height:100svh; overflow:hidden; /* 画面全体はスクロールしない */
   padding-top:calc(env(safe-area-inset-top) + 6px);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",Arial,sans-serif;
   background:var(--bg); color:var(--ink);
@@ -31,7 +31,7 @@ body{
   -webkit-user-select:none; user-select:none;
 }
 button{ touch-action:manipulation; }
-input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上） */
+input,button{ font-size:16px; } /* iOSの自動ズーム抑止 */
 
 .app{
   height:100%; max-width:1100px; margin:0 auto;
@@ -47,7 +47,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
 }
 .place{
   flex:1 1 220px; background:#fff; box-shadow:none; border:1px solid #eef1f4;
-  border-radius:10px; padding:8px 10px; font-size:16px; font-weight:800; color:#111;  /* 16px以上 */
+  border-radius:10px; padding:8px 10px; font-size:16px; font-weight:800; color:#111;
 }
 .departWrap{ display:flex; align-items:center; gap:8px; }
 .departLabel{ font-weight:900; letter-spacing:.03em; }
@@ -82,9 +82,9 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
 .grid{
   position:relative;
   display:grid;
-  grid-template-columns:56px repeat(4,1fr);
+  grid-template-columns:56px repeat(4,1fr); /* 左：時刻列＋メンバー列 */
   gap:var(--col-gap);
-  height:390px; /* JSで上書き */
+  height:100%; /* ← ここは常に可視高に固定（JSが可視高へ自動設定） */
 }
 
 /* 左の時刻列：ここだけ縦スクロール可 */
@@ -92,9 +92,9 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
 .timeScroll{
   position:absolute; inset:0;
   overflow:auto; -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
+  touch-action:pan-y; /* 縦スクロールOK */
 }
-.timeSpacer{ width:100%; height:100%; }
+.timeSpacer{ width:100%; height:100%; } /* コンテンツ高はJSで上書き（可視高+200px以上） */
 .timeLabels{ position:absolute; inset:0; pointer-events:none; }
 .timeLabel{
   position:absolute; left:4px; font-size:12px; color:#6b7280; font-weight:700;
@@ -104,9 +104,9 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
 /* 横ライン（全カラムへ延長） */
 .linesLayer{ position:absolute; inset:0; z-index:1; pointer-events:none; }
 .rowLine{ position:absolute; left:0; right:0; height:1px; background:var(--grid); }
-.rowLine.major{ background:var(--major); height:1.5px; }
+.rowLine.major{ background:var(--major); height:1.5px; } /* 00/30分は太め */
 
-/* メンバー列 */
+/* メンバー列（列自体はスクロール不可／中身だけ同期） */
 .memberCol{
   position:relative; border-left:1px dashed var(--grid); border-right:1px dashed var(--grid);
   border-radius:8px; overflow:visible; min-width:0;
@@ -122,7 +122,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
 }
 .colBody{ position:absolute; left:0; right:0; top:0; height:100%; will-change:transform; touch-action:none; }
 
-/* カード */
+/* カード（アイコンのみ） */
 .card{
   position:absolute; left:4px; right:4px;
   min-height: calc(var(--px-per-min) * 10);
@@ -348,7 +348,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
   const iconOf = (name) => EMOJI[name] || "📌";
 
   // ===== State =====
-  const LS_KEYS = ['tripshare_v10','tripshare_v9'];
+  const LS_KEYS = ['tripshare_v11','tripshare_v10'];
   let state = {
     place: "",
     departAt: NaN,                // 未設定
@@ -398,7 +398,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
   function load(){ for(const key of LS_KEYS){ const s=localStorage.getItem(key); if(s){ try{ state=JSON.parse(s); break; }catch(e){} } } }
   function save(){ localStorage.setItem(LS_KEYS[0], JSON.stringify(state)); }
 
-  // ===== Viewportズーム復元ハック（保険） =====
+  // ===== Viewportズーム復元（保険） =====
   function lockScale(){ vp.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1'); }
   function unlockScale(){ vp.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover'); }
   ['focusin','focusout'].forEach(ev=>{
@@ -510,17 +510,20 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     const win=getWindow();
     const durMin = (win.durationMs/60000)|0;
 
-    // 可視領域より必ず大きく（+200px）なるよう px-per-min を自動調整
-    const visibleH = gridwrap.clientHeight - 16; // 内側余白ぶん少し引く
+    // 可視高
+    const visibleH = gridwrap.clientHeight - 16;
+    // コンテンツ高（可視高+200px以上になるように1分あたりpxを調整）
     const targetContentH = visibleH + 200;
-    const targetPxPerMin = Math.max(pxPerMin(), targetContentH / durMin);
+    const targetPxPerMin = Math.max(2.6, targetContentH / durMin);
     setPxPerMin(targetPxPerMin);
 
-    const height = durMin * targetPxPerMin;
-    grid.style.height = height + "px";
-    timeSpacer.style.height = height + "px";
+    // グリッドは可視高固定、左列のスクロールで中身を動かす
+    grid.style.height = visibleH + "px";
+    // スクロール用のスペーサはコンテンツ高
+    const contentH = durMin * targetPxPerMin;
+    timeSpacer.style.height = contentH + "px";
 
-    // ライン＆ラベル再生成
+    // ライン＆ラベル再生成（全範囲を作ってtranslateで見せる）
     linesLayer.innerHTML=""; timeLabels.innerHTML="";
     for(let m=0; m<=durMin; m+=10){
       const y = m*targetPxPerMin;
@@ -545,7 +548,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     document.querySelectorAll('.colBody').forEach(col=> col.innerHTML="");
     state.events.forEach(ev=> addCard(ev));
 
-    // 既存スクロール位置反映
+    // 現在のスクロール位置反映
     applyScroll();
   }
 
@@ -574,7 +577,6 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     scrollY = timeScroll.scrollTop;
     applyScroll();
   }, {passive:true});
-
   function applyScroll(){
     document.querySelectorAll('.colBody').forEach(el=>{
       el.style.transform = `translateY(${-scrollY}px)`;
@@ -584,7 +586,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     placeDepartLine(); placeNowLine();
   }
 
-  // ===== Card =====
+  // ===== Card（削除は確認なしで即削除） =====
   function addCard(ev){
     const cb = colBody(ev.memberIndex);
     const win=getWindow();
@@ -608,7 +610,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     const leaveResizeMode = ()=>{ resizeMode=false; card.classList.remove('dragging'); };
 
     let holdTimer=null;
-    const startHold=(x)=>{ clearTimeout(holdTimer); holdTimer=setTimeout(()=>enterResizeMode(), 600); startX=x; };
+    const startHold=(x)=>{ clearTimeout(holdTimer); holdTimer=setTimeout(()=>enterResizeMode(), 650); startX=x; };
     const cancelHold=()=>{ clearTimeout(holdTimer); };
 
     const onDown=(e)=>{
@@ -655,14 +657,11 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     };
     const onCancel=()=>{ cancelHold(); card.releasePointerCapture?.(pid); pid=null; leaveResizeMode(); };
 
+    // 即削除
     card.querySelector('.delBtn').addEventListener('click', (e)=>{
       e.stopPropagation();
-      if(confirm('このカードを削除しますか？')){
-        state.events = state.events.filter(x=>x.id!==ev.id);
-        card.remove(); save();
-      }else{
-        card.classList.remove('swipeLeft');
-      }
+      state.events = state.events.filter(x=>x.id!==ev.id);
+      card.remove(); save();
     });
 
     card.addEventListener('pointerdown', onDown, {passive:false});
@@ -731,13 +730,18 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     }
   });
 
-  // ===== Depart modal（1タップ即表示・即保存） =====
-  openDepart.addEventListener('click', (e)=>{
-    e.preventDefault();
+  // ===== 出発時間ポップアップ：1タップ即表示 =====
+  let depOpening=false;
+  function openDepModalOnce(){
+    if(depOpening) return;
+    depOpening=true;
     departInput.value = isNaN(state.departAt) ? "" : fmtHM(new Date(state.departAt));
     depModal.style.display='flex';
-    setTimeout(()=>departInput.focus(), 30);
-  }, {passive:false});
+    setTimeout(()=>{ departInput.focus(); depOpening=false; }, 30);
+  }
+  openDepart.addEventListener('click', (e)=>{ e.preventDefault(); openDepModalOnce(); }, {passive:false});
+  openDepart.addEventListener('pointerup', (e)=>{ e.preventDefault(); openDepModalOnce(); }, {passive:false});
+
   depCancel.addEventListener('click', ()=> depModal.style.display='none');
   depOk.addEventListener('click', ()=>{
     const base = isNaN(state.departAt) ? Date.now() : state.departAt;
@@ -809,8 +813,7 @@ input,button{ font-size:16px; } /* ← iOSの自動ズーム抑止（16px以上�
     rebuildTags();
     rebuildGrid();
     updateCountdown();
-
-    // 端末回転や表示領域変化でもスクロール可能量を維持
+    // 回転やブラウザUI変化でもスクロール可を維持
     window.addEventListener('resize', ()=>{ rebuildGrid(); });
   }
   init();
